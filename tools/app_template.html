@@ -1,0 +1,990 @@
+<title>Mining &amp; Metallurgy Executive Search Academy</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: sticky status bar + one reading column (max 880px). The dashboard reads like an assay sheet:
+   KPI strip, a 28-day activity chain, and a 30-cell grid of days styled as element cells (day number = "atomic number").
+   Accent = scheelite under a UV lamp: deep electric blue in light theme, a soft blue glow in dark theme. */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --surface-2:#EAEEF3; --ink:#131820; --ink-2:#4B5665; --ink-3:#6B7684;
+  --line:#D6DDE5; --accent:#2B4ACB; --accent-ink:#FFFFFF; --accent-soft:#E4E9FB;
+  --ok:#17704A; --ok-soft:#DFF2E8; --warn:#85560D; --warn-soft:#FBEFD9; --bad:#B93A33; --bad-soft:#FBE4E2;
+  --glow:none;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1015; --surface:#151A21; --surface-2:#1C232C; --ink:#E6EBF1; --ink-2:#A3AEBB; --ink-3:#808B98;
+    --line:#29323D; --accent:#8FA3FF; --accent-ink:#0D1015; --accent-soft:#1B2350;
+    --ok:#53C892; --ok-soft:#10301F; --warn:#E5B54A; --warn-soft:#33260C; --bad:#F27A72; --bad-soft:#3B1614;
+    --glow:0 0 16px rgba(143,163,255,.35); color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1015; --surface:#151A21; --surface-2:#1C232C; --ink:#E6EBF1; --ink-2:#A3AEBB; --ink-3:#808B98;
+  --line:#29323D; --accent:#8FA3FF; --accent-ink:#0D1015; --accent-soft:#1B2350;
+  --ok:#53C892; --ok-soft:#10301F; --warn:#E5B54A; --warn-soft:#33260C; --bad:#F27A72; --bad-soft:#3B1614;
+  --glow:0 0 16px rgba(143,163,255,.35); color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55;margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Top bar */
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.bar-row{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink);min-width:0}
+.cell-mark{width:34px;height:34px;border:1.5px solid var(--ink);border-radius:4px;display:grid;place-items:center;font-family:var(--f-display);font-size:13px;font-weight:700;position:relative;flex:none}
+.cell-mark small{position:absolute;top:1px;left:3px;font-family:var(--f-mono);font-size:8px;font-weight:600}
+.brand-text{font-weight:600;font-size:14px;line-height:1.2}
+.brand-text span{display:block;color:var(--ink-3);font-weight:400;font-size:12px}
+.status{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--ink-2);white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.accent{background:var(--accent-soft);color:var(--accent)}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:8px;scrollbar-width:thin}
+nav.tabs a{flex:none;padding:6px 12px;border-radius:6px;text-decoration:none;color:var(--ink-2);font-size:14px;font-weight:500}
+nav.tabs a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+nav.tabs a:hover{color:var(--ink)}
+
+main{padding-block:20px 120px}
+main:focus{outline:none}
+h1,h2,h3{text-wrap:balance;line-height:1.25}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,4.2vw,30px);margin:0 0 8px;letter-spacing:-.01em}
+h2{font-size:20px;margin:28px 0 10px}
+h3{font-size:17px;margin:22px 0 8px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
+.lede{color:var(--ink-2);margin:0 0 14px;max-width:68ch}
+.stack{display:grid;gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.panel.flat{border:none;background:transparent;padding:0}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.muted{color:var(--ink-3)}
+.small{font-size:14px}
+
+/* Buttons */
+.btn{appearance:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:15px;font-weight:600;padding:9px 16px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;min-height:40px}
+.btn:hover{border-color:var(--ink-3)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--glow)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad);border-color:var(--bad)}
+.btn.small{font-size:13px;padding:5px 10px;min-height:32px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+/* Alerts */
+.alert{border-radius:var(--r);padding:14px 16px;display:grid;gap:6px}
+.alert strong{font-size:16px}
+.alert.warn{background:var(--warn-soft);color:var(--warn)}
+.alert.bad{background:var(--bad-soft);color:var(--bad)}
+.alert.ok{background:var(--ok-soft);color:var(--ok)}
+.alert.info{background:var(--accent-soft);color:var(--accent)}
+.alert p{margin:0;color:var(--ink)}
+.alert ol{margin:4px 0 0;padding-left:20px;color:var(--ink)}
+
+/* Hero (today) */
+.today-hero{display:grid;gap:12px}
+.today-hero .challenge{background:var(--surface-2);border-radius:6px;padding:12px 14px}
+.today-hero .challenge b{display:block;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+
+/* KPI strip */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;min-width:0}
+.kpi .k{font-size:13px;color:var(--ink-3)}
+.kpi .v{font-family:var(--f-display);font-size:26px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:12px;color:var(--ink-3)}
+
+/* Activity chain */
+.chain{display:grid;grid-template-columns:repeat(28,minmax(0,1fr));gap:3px}
+.chain i{display:block;aspect-ratio:1;border-radius:3px;background:var(--surface-2);max-width:100%}
+.chain i.on{background:var(--accent);box-shadow:var(--glow)}
+.chain i.gap{background:transparent;outline:1.5px dashed var(--warn);outline-offset:-2px}
+.chain i.broken{background:var(--bad-soft);outline:1.5px solid var(--bad);outline-offset:-2px}
+.chain i.today{outline:2px solid var(--ink);outline-offset:-2px}
+.chain-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);margin-top:8px}
+.chain-legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px;background:var(--surface-2)}
+.chain-legend .l-on::before{background:var(--accent)}
+.chain-legend .l-gap::before{background:transparent;outline:1.5px dashed var(--warn);outline-offset:-2px}
+.chain-legend .l-broken::before{background:var(--bad-soft);outline:1.5px solid var(--bad);outline-offset:-2px}
+
+/* Day grid — element cells */
+.grid30{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.dcell{position:relative;display:grid;gap:2px;align-content:start;min-height:92px;padding:8px;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);text-decoration:none;min-width:0}
+.dcell .no{font-family:var(--f-mono);font-size:12px;font-weight:600;color:var(--ink-3)}
+.dcell .sym{font-family:var(--f-display);font-size:20px;font-weight:700;line-height:1.1}
+.dcell .nm{font-size:11px;line-height:1.25;color:var(--ink-2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.dcell .sc{position:absolute;top:8px;right:8px;font-family:var(--f-mono);font-size:11px;font-weight:600}
+.dcell.open{border-color:var(--accent)}
+.dcell.open .sym{color:var(--accent)}
+.dcell.current{outline:3px solid var(--accent-soft)}
+.dcell.passed{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);box-shadow:var(--glow)}
+.dcell.passed .no,.dcell.passed .nm,.dcell.passed .sc{color:var(--accent-ink)}
+.dcell.locked,.dcell.soon{background:var(--surface-2);border-style:dashed;color:var(--ink-3)}
+.dcell.locked .sym,.dcell.soon .sym{color:var(--ink-3)}
+.mod-head{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;margin:18px 0 8px}
+.mod-head h3{margin:0}
+.bar-track{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.bar-track i{display:block;height:100%;background:var(--accent)}
+
+/* Badges */
+.badges{display:flex;flex-wrap:wrap;gap:8px}
+.badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;border:1px solid var(--line);font-size:13px;color:var(--ink-3);background:var(--surface)}
+.badge.got{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.badge b{font-family:var(--f-mono);font-size:11px}
+
+/* Day view */
+.day-head{display:grid;gap:10px}
+.day-meta{display:flex;gap:8px;flex-wrap:wrap}
+.callout{border-radius:6px;padding:12px 14px;background:var(--surface-2)}
+.callout .lbl{display:block;font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{appearance:none;border:0;background:var(--surface);color:var(--ink-2);font:inherit;font-size:14px;font-weight:600;padding:7px 12px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.checklist{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.checklist li{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:6px;background:var(--surface-2)}
+.checklist li.done{opacity:.7}
+.checklist li.done .ct{text-decoration:line-through}
+.checklist input{width:20px;height:20px;accent-color:var(--accent);flex:none}
+.checklist .ct{flex:1;min-width:0}
+.checklist .tm{flex:none}
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;margin-top:6px}
+.subtabs button{appearance:none;border:0;background:none;font:inherit;font-weight:600;font-size:15px;color:var(--ink-3);padding:10px 12px;border-bottom:2px solid transparent;cursor:pointer;flex:none}
+.subtabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+.subtabs .cnt{font-family:var(--f-mono);font-size:12px;margin-left:4px}
+
+/* Rendered course content */
+.content{min-width:0}
+.content h2{font-size:21px;border-top:1px solid var(--line);padding-top:22px;margin-top:30px}
+.content h2:first-child{border-top:0;margin-top:8px;padding-top:0}
+.content h3{font-size:17px}
+.content p,.content li{max-width:72ch}
+.content ul,.content ol{padding-left:22px}
+.content li{margin:3px 0}
+.content blockquote{margin:14px 0;padding:12px 16px;background:var(--accent-soft);border-radius:6px}
+.content blockquote p{margin:6px 0}
+.content hr{border:0;border-top:1px solid var(--line);margin:24px 0}
+.content code{font-family:var(--f-mono);font-size:.9em;background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.content pre.code{background:var(--surface-2);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:13px;line-height:1.5}
+.content pre.code code{background:none;padding:0}
+.table-wrap{overflow-x:auto;margin:12px 0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.table-wrap table{border-collapse:collapse;width:100%;font-size:14px;min-width:520px}
+.table-wrap th,.table-wrap td{text-align:left;vertical-align:top;padding:8px 10px;border-bottom:1px solid var(--line)}
+.table-wrap th{background:var(--surface-2);font-weight:600;font-size:13px}
+.table-wrap tr:last-child td{border-bottom:0}
+details{margin:10px 0;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+details summary{cursor:pointer;padding:8px 12px;font-weight:600;color:var(--accent);list-style-position:inside}
+details[open] summary{border-bottom:1px solid var(--line)}
+details > :not(summary){margin-left:12px;margin-right:12px}
+details > :last-child{margin-bottom:12px}
+.task input{vertical-align:-2px}
+
+/* Quiz */
+.quiz{display:grid;gap:14px}
+.q{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.q .qn{font-family:var(--f-mono);font-size:12px;color:var(--ink-3);margin-bottom:4px}
+.q .qt{font-weight:600;margin-bottom:10px}
+.q label{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:6px;border:1px solid var(--line);margin-top:6px;cursor:pointer;background:var(--surface)}
+.q label:hover{border-color:var(--ink-3)}
+.q input{margin-top:4px;accent-color:var(--accent);flex:none}
+.q .lt{font-family:var(--f-mono);font-weight:600;color:var(--ink-3);flex:none}
+.q label.right{border-color:var(--ok);background:var(--ok-soft)}
+.q label.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.q .ex{margin-top:10px;font-size:14px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:8px}
+.q.is-wrong{border-color:var(--bad)}
+.stamp{display:inline-grid;place-items:center;padding:10px 18px;border:3px solid currentColor;border-radius:6px;font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:.04em;transform:rotate(-4deg)}
+.stamp.ok{color:var(--ok)}
+.stamp.bad{color:var(--bad)}
+@media (prefers-reduced-motion: no-preference){ .stamp{animation:stamp .35s ease-out} @keyframes stamp{from{transform:rotate(-4deg) scale(1.6);opacity:0}to{transform:rotate(-4deg) scale(1);opacity:1}} }
+
+/* Flashcards */
+.fc-wrap{display:grid;gap:14px;max-width:620px}
+.fc{min-height:220px;display:grid;align-content:center;gap:10px;text-align:center;background:var(--surface);border:1.5px solid var(--line);border-radius:10px;padding:24px 20px}
+.fc .side{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.fc .term{font-family:var(--f-display);font-size:clamp(18px,4vw,24px);font-weight:700;line-height:1.3;overflow-wrap:anywhere}
+.fc .answer{font-size:18px;font-weight:600;color:var(--accent);overflow-wrap:anywhere}
+.fc .def{color:var(--ink-2);font-size:15px}
+.fc .from{font-size:12px;color:var(--ink-3)}
+.boxes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.boxes div{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px;text-align:center}
+.boxes b{display:block;font-family:var(--f-display);font-size:18px}
+.boxes span{font-size:11px;color:var(--ink-3)}
+
+/* Forms */
+.form{display:grid;gap:12px}
+.field{display:grid;gap:4px}
+.field label{font-size:14px;font-weight:600}
+.field .hint{font-size:12px;color:var(--ink-3)}
+input[type=text],input[type=date],input[type=time],input[type=number],textarea,select{font:inherit;font-size:15px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 10px;width:100%;min-width:0}
+textarea{min-height:80px;resize:vertical}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.err{color:var(--bad);font-size:13px;font-weight:600}
+
+/* Timer pill + toast */
+.timer{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));z-index:20;display:flex;gap:10px;align-items:center;background:var(--ink);color:var(--bg);padding:8px 10px 8px 16px;border-radius:999px;box-shadow:0 6px 20px rgba(0,0,0,.25);max-width:calc(100vw - 32px - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))}
+.timer .t{font-family:var(--f-mono);font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
+.timer .l{font-size:13px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.timer .btn{background:transparent;color:var(--bg);border-color:rgba(127,127,127,.5);min-height:30px;padding:4px 10px;font-size:13px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(76px + env(safe-area-inset-bottom,0px));z-index:21;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-left-width:1px;padding:10px 16px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,.18);font-size:14px;max-width:min(520px,calc(100vw - 32px))}
+.sync{font-size:12px;color:var(--ink-3)}
+.lockbox{display:grid;gap:10px;justify-items:start}
+.kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px}
+@media (max-width:520px){
+  .bar{position:static}
+  .sync{display:none}
+  .brand-text span{display:none}
+  .kpi .v{font-size:22px}
+  .grid30{grid-template-columns:repeat(auto-fill,minmax(76px,1fr))}
+  .dcell{min-height:80px}
+  .dcell .nm{display:none}
+}
+</style>
+
+<header class="bar">
+  <div class="wrap">
+    <div class="bar-row">
+      <a class="brand" href="#today" aria-label="На главную">
+        <span class="cell-mark" aria-hidden="true"><small>74</small>W</span>
+        <span class="brand-text">Mining &amp; Metallurgy Executive Search Academy<span>30 дней · подготовка Executive Search Specialist · TMK</span></span>
+      </a>
+      <div class="status" id="status"></div>
+    </div>
+    <nav class="tabs" id="tabs" aria-label="Разделы">
+      <a href="#today">Сегодня</a>
+      <a href="#program">Программа</a>
+      <a href="#cards">Карточки</a>
+      <a href="#journal">Журнал</a>
+      <a href="#tmk">TMK</a>
+      <a href="#contract">Контракт</a>
+    </nav>
+  </div>
+</header>
+<main class="wrap" id="main" tabindex="-1"></main>
+<div class="timer" id="timer" hidden aria-live="polite"></div>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
+
+<script>
+const DATA = /*__COURSE_DATA__*/null;
+
+/* ===================== Utilities ===================== */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const pad = n => String(n).padStart(2, "0");
+const ymd = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const diffDays = (a, b) => Math.round((parseYmd(b) - parseYmd(a)) / 86400000);
+const MONTHS = ["января","февраля","марта","апреля","мая","июня","июля","августа","сентября","октября","ноября","декабря"];
+const fmtDate = s => { if (!s) return "—"; const d = parseYmd(s); return `${d.getDate()} ${MONTHS[d.getMonth()]}`; };
+const plural = (n, one, few, many) => { const a = Math.abs(n) % 100, b = a % 10; if (a > 10 && a < 20) return many; if (b > 1 && b < 5) return few; if (b === 1) return one; return many; };
+const clone = o => JSON.parse(JSON.stringify(o));
+const DAYS = DATA.days;
+const DAY = n => DAYS.find(d => d.n === n);
+const MODULE = n => DATA.modules.find(m => m.n === n);
+const moduleOfDay = n => DATA.modules.find(m => n >= m.from && n <= m.to);
+const PASS = 8, MODULE_PASS = 16, COOLDOWN_MIN = 30, NEW_CARDS_PER_DAY = 25;
+const LEITNER = [0, 1, 2, 4, 8, 16];
+
+const MOTIVATION = [
+  "Мотивация приходит после начала, а не до. Откройте разминку: это 10 минут.",
+  "Один пропуск — случайность. Два — новая привычка. Не давайте ей появиться.",
+  "Технолог, который запускал APT вне Китая, всерьёз говорит только с тем, кто понимает, что такое APT.",
+  "40 минут сегодня полезнее четырёх часов в выходные, которые не наступят.",
+  "Каждый зачтённый тест — это вопрос, на котором кандидат вас уже не поймает.",
+  "Не ждите настроения. Сядьте в своё время и откройте первый блок.",
+  "Ошибка в тесте бесплатна. Ошибка в найме главного технолога стоит TMK годы.",
+  "За тех же специалистов по вольфраму и РЗЭ борются США, ЕС, Корея и Япония. Их рекрутеры тоже учатся.",
+  "Устали — сделайте только разминку. Обычно после неё хочется продолжить.",
+  "Минимум каждый день сильнее максимума раз в неделю.",
+  "Через 30 дней вы будете говорить с главными инженерами на их языке, если не остановитесь сейчас.",
+  "Сильный рекрутер знает вакансию. Лучший знает, где работают люди, которые этот процесс запускали.",
+  "15 карточек — 7 минут. Это можно сделать даже в очереди.",
+  "Вы готовитесь не к экзамену, а к звонку кандидату, который будет завтра.",
+  "Знание, применённое в течение 48 часов, остаётся. Примените сегодняшний день на реальной вакансии.",
+  "Прогресс любит видимость. Отметьте в журнале, что сделали сегодня.",
+  "Тяжёлый день — признак роста. Пропуск — признак остановки.",
+  "Вызов дня — это инструмент, который останется у вас после курса. Доделайте его.",
+  "Нанимающий менеджер запомнит рекрутера, который задал один точный технический вопрос.",
+  "Вы уже прошли больше, чем большинство тех, кто «собирался начать». Продолжайте.",
+  "Не перечитывайте — вспоминайте. Попытка вспомнить работает сильнее.",
+  "Обещание на завтра — не формальность. Запишите время и место.",
+  "Дисциплина — это решение, принятое заранее. Ваше решение записано в контракте.",
+  "Каждый термин RU↔EN — ещё один кандидат, с которым вы найдёте общий язык."
+];
+
+/* ===================== State & persistence ===================== */
+const LS_KEY = "mmesa-academy-v1";
+function defaultState() {
+  return { v: 1, createdAt: ymd(), updatedAt: 0, contract: null, days: {}, modules: {}, cards: {}, activity: {}, best: 0, settings: { sound: true }, timer: null };
+}
+function migrate(s) {
+  const d = defaultState();
+  if (!s || typeof s !== "object") return d;
+  for (const k of Object.keys(d)) if (s[k] === undefined) s[k] = d[k];
+  return s;
+}
+function loadLocal() { try { const raw = localStorage.getItem(LS_KEY); return raw ? migrate(JSON.parse(raw)) : null; } catch (e) { return null; } }
+function saveLocal() { try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {} }
+let state = loadLocal() || defaultState();
+
+const remote = { ref: null, writing: false, pending: false, timer: null, status: "local" };
+function persist() {
+  state.updatedAt = Date.now();
+  saveLocal();
+  if (remote.ref) { clearTimeout(remote.timer); remote.timer = setTimeout(pushRemote, 1200); }
+}
+async function pushRemote() {
+  if (!remote.ref) return;
+  if (remote.writing) { remote.pending = true; return; }
+  remote.writing = true;
+  try { await remote.ref.set({ state: clone(state) }); setSync("synced"); }
+  catch (e) { setSync(e && e.code === "quota_exceeded" ? "full" : "error"); }
+  remote.writing = false;
+  if (remote.pending) { remote.pending = false; pushRemote(); }
+}
+function setSync(s) { remote.status = s; renderStatus(); }
+async function connectRemote() {
+  if (!window.claude || typeof window.claude.use !== "function") return;
+  try {
+    const [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]);
+    if (!db || !user) return;
+    const id = await user.id();
+    if (!id) return;
+    const ref = db.doc("data/users/" + id + "/academy");
+    remote.ref = ref; setSync("connecting");
+    const t = setTimeout(() => { if (remote.status === "connecting") setSync("slow"); }, 10000);
+    ref.onSnapshot(snap => {
+      if (!snap.metadata.fromCache) clearTimeout(t);
+      const data = snap.exists ? snap.data() : null;
+      const incoming = data && data.state;
+      if (incoming && (incoming.updatedAt || 0) > (state.updatedAt || 0)) {
+        flushJournal(); state = migrate(clone(incoming)); saveLocal(); render();
+      }
+      if (!snap.metadata.fromCache) setSync("synced");
+    }, () => { clearTimeout(t); remote.ref = null; setSync("local"); });
+  } catch (e) { /* stay local */ }
+}
+
+/* ===================== Activity, streak, unlocks ===================== */
+const today = () => ymd();
+function bump(kind, amount = 1) {
+  const t = today();
+  const a = state.activity[t] || (state.activity[t] = { checks: 0, cards: 0, focus: 0, tests: 0, newCards: 0 });
+  a[kind] = (a[kind] || 0) + amount;
+}
+function isActive(date) {
+  const a = state.activity[date];
+  return !!a && (a.tests >= 1 || a.checks >= 2 || a.cards >= 15 || a.focus >= 20);
+}
+function firstActivity() { const ks = Object.keys(state.activity).filter(isActive).sort(); return ks[0] || null; }
+function streakInfo() {
+  const start = firstActivity();
+  if (!start) return { current: 0, best: state.best || 0, missedYesterday: false, broken: false, activeToday: false };
+  const t = today();
+  const activeToday = isActive(t);
+  let current = 0, gap = 0, d = activeToday ? t : addDays(t, -1);
+  // Walk back: single missed days are tolerated, two in a row end the chain.
+  while (diffDays(start, d) >= 0) {
+    if (isActive(d)) { current++; gap = 0; } else { gap++; if (gap >= 2) break; }
+    d = addDays(d, -1);
+  }
+  const y1 = addDays(t, -1), y2 = addDays(t, -2);
+  const missedYesterday = !activeToday && !isActive(y1) && diffDays(start, y1) >= 0;
+  const broken = !activeToday && !isActive(y1) && !isActive(y2) && diffDays(start, y2) >= 0;
+  if (broken) current = 0;
+  const best = Math.max(state.best || 0, current);
+  if (best !== state.best) { state.best = best; saveLocal(); }
+  return { current, best, missedYesterday, broken, activeToday };
+}
+const dayState = n => state.days[n] || (state.days[n] = { checks: {}, quiz: { best: null, attempts: 0, lastFailAt: 0, passedAt: null }, journal: {}, minutes: 0, mode: "full", completedAt: null });
+const passed = n => { const s = state.days[n]; return !!(s && s.quiz && s.quiz.passedAt); };
+const modulePassed = m => !!(state.modules[m] && state.modules[m].passedAt);
+function unlockReason(n) {
+  const d = DAY(n);
+  if (!d) return "soon";
+  if (n === 1) return null;
+  if (!passed(n - 1)) return `Сначала сдайте тест Дня ${n - 1} на ${PASS}/10 или выше.`;
+  const m = moduleOfDay(n);
+  if (m && m.from === n && m.n > 1 && !modulePassed(m.n - 1)) return `Сначала сдайте итоговый тест Модуля ${m.n - 1} (${MODULE_PASS}/20 или выше).`;
+  return null;
+}
+const isOpen = n => !!DAY(n) && unlockReason(n) === null;
+function currentDay() {
+  for (const d of DAYS) if (isOpen(d.n) && !passed(d.n)) return d.n;
+  for (const d of DAYS) if (!isOpen(d.n)) return d.n;
+  return null;
+}
+function nextAction() {
+  const cd = currentDay();
+  if (cd && isOpen(cd)) return { kind: "day", n: cd };
+  if (cd && !isOpen(cd)) {
+    const m = moduleOfDay(cd);
+    if (m && m.n > 1 && !modulePassed(m.n - 1) && passed(cd - 1)) return { kind: "module", n: m.n - 1 };
+  }
+  const lastReady = DATA.modules.filter(m => m.ready).pop();
+  if (lastReady && !modulePassed(lastReady.n)) return { kind: "module", n: lastReady.n };
+  return { kind: "done" };
+}
+const avgScore = () => { const s = DAYS.map(d => state.days[d.n]?.quiz?.best).filter(v => v != null); return s.length ? Math.round(s.reduce((a, b) => a + b, 0) / s.length * 10) : null; };
+
+/* ===================== Flashcards (Leitner) ===================== */
+function allCards() {
+  const out = [];
+  for (const d of DAYS) if (isOpen(d.n)) d.terms.forEach((t, i) => out.push({ id: `${d.n}-${i}`, day: d.n, ...t }));
+  return out;
+}
+function cardStats() {
+  const cards = allCards(); const boxes = [0, 0, 0, 0, 0, 0]; let due = 0, fresh = 0; const t = today();
+  for (const c of cards) { const s = state.cards[c.id]; if (!s) { fresh++; boxes[0]++; continue; } boxes[s.box]++; if (s.due <= t) due++; }
+  const newLeft = Math.max(0, NEW_CARDS_PER_DAY - ((state.activity[t] || {}).newCards || 0));
+  return { total: cards.length, boxes, due, fresh, newLeft, todo: due + Math.min(fresh, newLeft) };
+}
+let fcSession = null;
+function buildSession() {
+  const t = today(); const cards = allCards();
+  const due = cards.filter(c => state.cards[c.id] && state.cards[c.id].due <= t);
+  shuffle(due);
+  const newLeft = Math.max(0, NEW_CARDS_PER_DAY - ((state.activity[t] || {}).newCards || 0));
+  const fresh = cards.filter(c => !state.cards[c.id]).slice(0, newLeft);
+  fcSession = { queue: [...due, ...fresh], idx: 0, shown: false, dir: fcSession?.dir || "ru", done: 0, again: new Set() };
+}
+function gradeCard(ok) {
+  const c = fcSession.queue[fcSession.idx]; if (!c) return;
+  const t = today(); const prev = state.cards[c.id];
+  if (!prev) bump("newCards");
+  const box = ok ? Math.min(5, (prev ? prev.box : 0) + 1) : 1;
+  state.cards[c.id] = { box, due: ok ? addDays(t, LEITNER[box]) : t };
+  if (!ok && !fcSession.again.has(c.id)) { fcSession.again.add(c.id); fcSession.queue.push(c); }
+  bump("cards"); fcSession.done++; fcSession.idx++; fcSession.shown = false;
+  persist(); renderView(); renderStatus();
+}
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+/* ===================== Timer ===================== */
+let tickHandle = null, wakeLock = null;
+function startTimer(day, idx, minutes, label) {
+  state.timer = { day, idx, minutes, label, endsAt: Date.now() + minutes * 60000 };
+  persist(); runTimer();
+  try { navigator.wakeLock && navigator.wakeLock.request("screen").then(l => { wakeLock = l; }).catch(() => {}); } catch (e) {}
+  toast(`Таймер: ${minutes} мин. Телефон — в другую комнату.`);
+}
+function stopTimer(completed) {
+  const tm = state.timer; if (!tm) return;
+  const spent = Math.max(0, Math.round((Date.now() - (tm.endsAt - tm.minutes * 60000)) / 60000));
+  const minutes = completed ? tm.minutes : Math.min(spent, tm.minutes);
+  if (minutes > 0) { bump("focus", minutes); const ds = dayState(tm.day); ds.minutes = (ds.minutes || 0) + minutes; }
+  if (completed) { const ds = dayState(tm.day); if (!ds.checks[tm.idx]) { ds.checks[tm.idx] = true; bump("checks"); } beep(); toast(`Блок «${tm.label}» завершён и отмечен. Следующий — без перерыва длиннее 10 минут.`); }
+  state.timer = null; flushJournal(); persist();
+  try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null;
+  runTimer(); renderView(); renderStatus();
+}
+function runTimer() {
+  const el = $("#timer"); clearInterval(tickHandle);
+  if (!state.timer) { el.hidden = true; return; }
+  const draw = () => {
+    const left = state.timer.endsAt - Date.now();
+    if (left <= 0) { stopTimer(true); return; }
+    const m = Math.floor(left / 60000), s = Math.floor(left % 60000 / 1000);
+    el.innerHTML = `<span class="t">${pad(m)}:${pad(s)}</span><span class="l">День ${state.timer.day} · ${esc(state.timer.label)}</span><button class="btn" data-act="timer-stop" type="button">Стоп</button>`;
+  };
+  el.hidden = false; draw(); tickHandle = setInterval(draw, 1000);
+}
+function beep() {
+  if (!state.settings.sound) return;
+  try { const ctx = new (window.AudioContext || window.webkitAudioContext)(); const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 880; g.gain.value = 0.08; o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.25); } catch (e) {}
+}
+
+/* ===================== Toast ===================== */
+let toastHandle = null;
+function toast(msg) { const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toastHandle); toastHandle = setTimeout(() => { el.hidden = true; }, 4200); }
+
+/* ===================== Status bar ===================== */
+function renderStatus() {
+  const st = streakInfo(); const cs = cardStats();
+  const syncText = { local: "прогресс в этом браузере", connecting: "подключение…", slow: "синхронизация недоступна, сохраняю локально", synced: "синхронизировано", error: "ошибка синхронизации, сохраняю локально", full: "хранилище заполнено" }[remote.status] || "";
+  $("#status").innerHTML = [
+    `<span class="pill ${st.broken ? "bad" : st.missedYesterday ? "warn" : st.current ? "accent" : ""}" title="Серия прерывается только при двух пропусках подряд">Серия: ${st.current} ${plural(st.current, "день", "дня", "дней")}</span>`,
+    `<span class="pill ${st.activeToday ? "ok" : "warn"}">${st.activeToday ? "Сегодня: зачтено" : "Сегодня: ещё нет"}</span>`,
+    cs.todo ? `<a class="pill" href="#cards" style="text-decoration:none">Карточек: ${cs.todo}</a>` : "",
+    `<span class="sync" aria-live="polite">${syncText}</span>`
+  ].join("");
+}
+
+/* ===================== Views ===================== */
+function route() { const h = (location.hash || "#today").slice(1); return h || "today"; }
+function render() { renderStatus(); renderView(); runTimer(); }
+function renderView() {
+  const r = route(); const main = $("#main");
+  let m;
+  document.querySelectorAll("#tabs a").forEach(a => a.removeAttribute("aria-current"));
+  const tab = r.startsWith("day-") || r.startsWith("module-") ? "#program" : "#" + r;
+  const active = document.querySelector(`#tabs a[href="${tab}"]`); if (active) active.setAttribute("aria-current", "page");
+  if (r === "today") main.innerHTML = viewToday();
+  else if (r === "program") main.innerHTML = viewProgram();
+  else if ((m = r.match(/^day-(\d+)$/))) main.innerHTML = viewDay(+m[1]);
+  else if ((m = r.match(/^module-(\d+)$/))) main.innerHTML = viewModule(+m[1]);
+  else if (r === "cards") main.innerHTML = viewCards();
+  else if (r === "journal") main.innerHTML = viewJournal();
+  else if (r === "tmk") main.innerHTML = `<p class="eyebrow">Справочник</p>${DATA.profileHtml.replace("<h1>", "<h1 style='margin-top:0'>")}`.replace(/^/, "<div class='content'>") + "</div>";
+  else if (r === "contract") main.innerHTML = viewContract();
+  else main.innerHTML = viewToday();
+}
+
+function viewToday() {
+  const st = streakInfo(); const cs = cardStats(); const t = today();
+  const passedCount = DAYS.filter(d => passed(d.n)).length;
+  const avg = avgScore();
+  const na = nextAction();
+  const alerts = [];
+  if (!state.contract) alerts.push(`<div class="alert info"><strong>Сначала подпишите контракт с собой</strong><p>Время, место, человек, которому вы отчитываетесь, и зачем вам это. Две минуты, которые удерживают от срыва на второй неделе.</p><div><a class="btn primary" href="#contract">Подписать контракт</a></div></div>`);
+  if (st.broken) alerts.push(`<div class="alert bad"><strong>Два пропуска подряд. Серия сброшена.</strong><p>Не начинайте программу заново и не корите себя. Протокол возврата:</p><ol><li>Сегодня — разминка последнего пройденного дня и его тест (20 минут).</li><li>Завтра — минимальная версия следующего дня.</li><li>Послезавтра — полная версия.</li></ol></div>`);
+  else if (st.missedYesterday) alerts.push(`<div class="alert warn"><strong>Вчера был пропуск. Сегодня — обязательный день.</strong><p>Правило академии: никогда два пропуска подряд. Если времени мало, сделайте минимальную версию дня (40 минут).</p></div>`);
+  const promise = lastPromise();
+  if (promise && promise.date === t && !st.activeToday) {
+    const [hh, mm] = (promise.time || "").split(":").map(Number);
+    if (!isNaN(hh)) {
+      const now = new Date(); const late = (now.getHours() * 60 + now.getMinutes()) - (hh * 60 + (mm || 0));
+      if (late > 0) alerts.push(`<div class="alert warn"><strong>Вы обещали начать в ${esc(promise.time)}${promise.place ? ", место: " + esc(promise.place) : ""}.</strong><p>Сейчас ${pad(now.getHours())}:${pad(now.getMinutes())}, опоздание ${late} мин. Начните с разминки прямо сейчас — первые 10 минут решают всё.</p></div>`);
+      else alerts.push(`<div class="alert info"><strong>Сегодня в ${esc(promise.time)} — ваше занятие${promise.place ? " (" + esc(promise.place) + ")" : ""}.</strong><p>Вы сами это пообещали. Держите слово.</p></div>`);
+    }
+  }
+  let hero = "";
+  if (na.kind === "day") {
+    const d = DAY(na.n); const ds = state.days[na.n];
+    const done = ds ? Object.values(ds.checks).filter(Boolean).length : 0;
+    hero = `<section class="panel today-hero" aria-labelledby="hero-h">
+      <p class="eyebrow">Модуль ${d.module} · День ${d.n} из ${DATA.totalDays} · ${esc(d.duration)}</p>
+      <h1 id="hero-h">${esc(d.title)}</h1>
+      <div class="challenge"><b>Вызов дня</b>${d.challenge}</div>
+      <div class="row small muted">Чек-лист: ${done} из ${d.checklist.length} блоков${ds && ds.quiz.attempts ? ` · попыток теста: ${ds.quiz.attempts}` : ""}</div>
+      <div class="row">
+        <a class="btn primary" href="#day-${d.n}" data-act="start-warmup" data-day="${d.n}">Начать с разминки · 10 мин</a>
+        <a class="btn" href="#day-${d.n}" data-act="min-mode" data-day="${d.n}">Минимальная версия · 40 мин</a>
+      </div>
+    </section>`;
+  } else if (na.kind === "module") {
+    const m = MODULE(na.n);
+    hero = `<section class="panel today-hero"><p class="eyebrow">Рубеж модуля</p><h1>Итоговый тест Модуля ${m.n}</h1><p class="lede">${esc(m.title)}. Порог — ${MODULE_PASS}/20. Следующий модуль откроется после зачёта.</p><div class="row"><a class="btn primary" href="#module-${m.n}">Пройти итоговый тест</a></div></section>`;
+  } else {
+    hero = `<section class="panel today-hero"><p class="eyebrow">Модули 1–2 пройдены</p><h1>Треть программы позади</h1><p class="lede">Модули 3–6 ещё в разработке. Пока держите серию: карточки каждый день, teach-back с технологом, применение знаний на реальных вакансиях TMK.</p><div class="row"><a class="btn primary" href="#cards">Повторить карточки</a><a class="btn" href="#journal">Открыть журнал</a></div></section>`;
+  }
+  const endDate = state.contract && state.contract.end;
+  const left = endDate ? diffDays(t, endDate) : null;
+  const kpis = `<section class="kpis" aria-label="Показатели">
+    <div class="kpi"><div class="k">Серия</div><div class="v">${st.current}</div><div class="s">лучшая: ${st.best}</div></div>
+    <div class="kpi"><div class="k">Дней сдано</div><div class="v">${passedCount}<span class="muted" style="font-size:16px">/${DATA.totalDays}</span></div><div class="s">готово к прохождению: ${DAYS.length}</div></div>
+    <div class="kpi"><div class="k">Средний балл</div><div class="v">${avg == null ? "—" : avg + "%"}</div><div class="s">лучшие попытки тестов</div></div>
+    <div class="kpi"><div class="k">Карточки сегодня</div><div class="v">${cs.todo}</div><div class="s">в колоде: ${cs.total}</div></div>
+    <div class="kpi"><div class="k">До финиша</div><div class="v">${left == null ? "—" : Math.max(0, left)}</div><div class="s">${left == null ? "укажите даты в контракте" : plural(Math.max(0, left), "день", "дня", "дней") + " до " + fmtDate(endDate)}</div></div>
+  </section>`;
+  const chain = chainHtml();
+  const quote = MOTIVATION[(parseYmd(t) - new Date(2026, 0, 1)) / 86400000 % MOTIVATION.length | 0] || MOTIVATION[0];
+  return `<div class="stack">${alerts.join("")}${hero}${kpis}
+    <section class="panel" aria-labelledby="chain-h"><h2 id="chain-h" style="margin-top:0">Цепочка последних 28 дней</h2><p class="muted small" style="margin-top:0">Пропуск одного дня допустим. Два подряд рвут цепочку.</p>${chain}</section>
+    <section class="panel"><p class="eyebrow">Мысль дня</p><p style="margin:0;font-size:18px;font-weight:600">${esc(quote)}</p></section>
+    <section aria-labelledby="grid-h"><h2 id="grid-h">Программа: 30 дней</h2>${gridHtml()}</section>
+    <section aria-labelledby="badges-h"><h2 id="badges-h">Рубежи</h2>${badgesHtml()}</section>
+  </div>`;
+}
+function lastPromise() {
+  let best = null;
+  for (const [n, ds] of Object.entries(state.days)) {
+    const j = ds.journal || {};
+    if (j.promiseDate && (!best || j.promiseDate > best.date)) best = { date: j.promiseDate, time: j.commitTime, place: j.commitPlace, day: +n };
+  }
+  return best;
+}
+function chainHtml() {
+  const t = today(); const start = firstActivity(); let cells = ""; let gap = 0;
+  const days = []; for (let i = 27; i >= 0; i--) days.push(addDays(t, -i));
+  for (const d of days) {
+    let cls = "";
+    if (isActive(d)) { cls = "on"; gap = 0; }
+    else if (start && d >= start && d < t) { gap++; cls = gap >= 2 ? "broken" : "gap"; }
+    else gap = 0;
+    if (d === t) cls += " today";
+    cells += `<i class="${cls}" title="${fmtDate(d)}${isActive(d) ? " — занятие зачтено" : ""}"></i>`;
+  }
+  return `<div class="chain" role="img" aria-label="Активность за 28 дней">${cells}</div><div class="chain-legend"><span class="l-on">занятие</span><span class="l-gap">один пропуск</span><span class="l-broken">два пропуска подряд</span></div>`;
+}
+const SYMBOLS = {1:"Ин",2:"Гл",3:"Рз",4:"Гр",5:"Пр",6:"Об",7:"Фл",8:"Гм",9:"Эк",10:"Пм"};
+function gridHtml() {
+  const cd = currentDay();
+  let out = "";
+  for (const m of DATA.modules) {
+    const total = m.to - m.from + 1;
+    const done = Array.from({ length: total }, (_, i) => m.from + i).filter(passed).length;
+    out += `<div class="mod-head"><h3>Модуль ${m.n}. ${esc(m.title)}</h3><span class="small muted mono">${m.ready ? `${done}/${total}` : "в разработке"}</span></div>`;
+    out += `<div class="bar-track" aria-hidden="true"><i style="width:${Math.round(done / total * 100)}%"></i></div><div class="grid30" style="margin-top:10px">`;
+    for (let n = m.from; n <= m.to; n++) {
+      const d = DAY(n);
+      if (!d) { out += `<div class="dcell soon" aria-label="День ${n}: скоро"><span class="no">${n}</span><span class="sym">··</span><span class="nm">скоро</span></div>`; continue; }
+      const ok = passed(n), open = isOpen(n);
+      const best = state.days[n]?.quiz?.best;
+      const cls = ok ? "passed" : open ? "open" : "locked";
+      out += `<a class="dcell ${cls}${n === cd ? " current" : ""}" href="#day-${n}" aria-label="День ${n}: ${esc(d.title)}${ok ? ", сдан" : open ? ", открыт" : ", закрыт"}"><span class="no">${n}</span><span class="sym">${SYMBOLS[n] || "··"}</span><span class="nm">${esc(d.title)}</span>${best != null ? `<span class="sc">${best}/10</span>` : open ? "" : `<span class="sc" aria-hidden="true">${lockSvg()}</span>`}</a>`;
+    }
+    out += `</div>`;
+    if (m.ready) out += `<div class="row" style="margin-top:8px"><a class="btn small ${modulePassed(m.n) ? "" : "ghost"}" href="#module-${m.n}">${modulePassed(m.n) ? `Итоговый тест: ${state.modules[m.n].score}/20 ✓` : "Итоговый тест модуля"}</a></div>`;
+    else out += `<p class="small muted">${m.topics || ""}</p>`;
+  }
+  return out;
+}
+function lockSvg() { return `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`; }
+function badgesHtml() {
+  const st = streakInfo(); const cs = cardStats();
+  const perfect = DAYS.some(d => state.days[d.n]?.quiz?.best === 10);
+  const learned = Object.values(state.cards).filter(c => c.box >= 3).length;
+  const list = [
+    ["Первый зачёт", DAYS.some(d => passed(d.n)), "сдан первый тест дня"],
+    ["Неделя в строю", st.best >= 7, "серия 7 дней"],
+    ["Модуль 1", modulePassed(1), "итоговый тест ≥ 16/20"],
+    ["Модуль 2", modulePassed(2), "итоговый тест ≥ 16/20"],
+    ["Без единой ошибки", perfect, "тест дня 10/10"],
+    ["100 терминов", learned >= 100, `карточек в коробках 3–5: ${learned}`],
+    ["Teach-back ×2", !!(state.modules[1]?.teach && state.modules[2]?.teach), "объяснили модули эксперту"]
+  ];
+  return `<div class="badges">${list.map(([n, got, s]) => `<span class="badge ${got ? "got" : ""}" title="${esc(s)}"><b>${got ? "✓" : "○"}</b>${esc(n)}</span>`).join("")}</div>`;
+}
+
+function viewProgram() {
+  let out = `<p class="eyebrow">Программа</p><h1>30 дней · 6 модулей</h1><p class="lede">Каждый следующий день открывается после теста ≥ ${PASS}/10, каждый следующий модуль — после итогового теста ≥ ${MODULE_PASS}/20. Модули 3–6 появятся после уточнения программы.</p>`;
+  for (const m of DATA.modules) {
+    out += `<section class="panel" style="margin-top:14px"><p class="eyebrow">Дни ${m.from}–${m.to}${m.ready ? "" : " · в разработке"}</p><h2 style="margin-top:0">Модуль ${m.n}. ${esc(m.title)}</h2>`;
+    if (m.goal) out += `<p class="lede">${m.goal}</p>`;
+    if (m.ready) {
+      out += `<ol start="${m.from}" style="padding-left:22px;margin:0">`;
+      for (let n = m.from; n <= m.to; n++) { const d = DAY(n); if (!d) continue; out += `<li style="margin:4px 0"><a href="#day-${n}">${esc(d.title)}</a> ${passed(n) ? `<span class="pill ok">${state.days[n].quiz.best}/10</span>` : isOpen(n) ? `<span class="pill accent">открыт</span>` : `<span class="pill">закрыт</span>`}</li>`; }
+      out += `</ol><div class="row" style="margin-top:12px"><a class="btn" href="#module-${m.n}">Итоговый тест и teach-back</a></div>`;
+    } else out += `<p class="small">${m.topics}</p>`;
+    out += `</section>`;
+  }
+  return out;
+}
+
+let daySub = "content";
+let quizRun = null;
+function viewDay(n) {
+  const d = DAY(n);
+  if (!d) return `<div class="panel lockbox"><p class="eyebrow">День ${n}</p><h1>В разработке</h1><p class="lede">Этот день появится, когда будет уточнена программа модулей 3–6.</p><a class="btn" href="#program">К программе</a></div>`;
+  const reason = unlockReason(n);
+  if (reason) return `<div class="panel lockbox"><p class="eyebrow">День ${n} · закрыт</p><h1>${esc(d.title)}</h1><p class="lede">${esc(reason)} Так устроена академия: знание строится на предыдущем.</p><div class="row"><a class="btn primary" href="#day-${n - 1}">Открыть День ${n - 1}</a><a class="btn" href="#program">К программе</a></div></div>`;
+  const ds = dayState(n);
+  const doneCount = d.checklist.filter((_, i) => ds.checks[i]).length;
+  const checklist = d.checklist.map((c, i) => `<li class="${ds.checks[i] ? "done" : ""}"><input type="checkbox" id="chk-${n}-${i}" data-act="check" data-day="${n}" data-idx="${i}" ${ds.checks[i] ? "checked" : ""}><label class="ct" for="chk-${n}-${i}">${c.text}</label>${c.minutes ? `<button class="btn small tm" type="button" data-act="timer" data-day="${n}" data-idx="${i}" data-min="${c.minutes}">${c.minutes} мин ▸</button>` : ""}</li>`).join("");
+  const q = ds.quiz;
+  const subs = [["content", "Материал"], ["quiz", `Тест<span class="cnt">${q.best != null ? q.best + "/10" : ""}</span>`], ["terms", `Термины<span class="cnt">${d.terms.length}</span>`], ["finish", "Итог дня"]];
+  let body = "";
+  if (daySub === "content") body = `<article class="content">${d.html}</article>`;
+  else if (daySub === "quiz") body = quizHtml(d, ds);
+  else if (daySub === "terms") body = termsHtml(d);
+  else body = finishHtml(d, ds);
+  return `<div class="stack">
+    <section class="day-head">
+      <p class="eyebrow">Модуль ${d.module} · День ${d.n} из ${DATA.totalDays} · ${esc(d.duration)}</p>
+      <h1>${esc(d.title)}</h1>
+      <div class="day-meta">${passed(n) ? `<span class="pill ok">Тест сдан: ${q.best}/10</span>` : `<span class="pill warn">Тест не сдан</span>`}${ds.completedAt ? `<span class="pill ok">День завершён ${fmtDate(ds.completedAt)}</span>` : ""}<span class="pill">В фокусе: ${ds.minutes || 0} мин</span></div>
+      <div class="callout"><span class="lbl">Вызов дня</span>${d.challenge}</div>
+      <div class="callout"><span class="lbl">Зачем это вам</span>${d.why}</div>
+    </section>
+    <section class="panel">
+      <div class="row" style="justify-content:space-between"><h2 style="margin:0">Чек-лист дня <span class="mono small muted">${doneCount}/${d.checklist.length}</span></h2>
+        <div class="seg" role="group" aria-label="Версия дня"><button type="button" data-act="mode" data-day="${n}" data-mode="full" aria-pressed="${ds.mode !== "min"}">Полная</button><button type="button" data-act="mode" data-day="${n}" data-mode="min" aria-pressed="${ds.mode === "min"}">Минимальная</button></div></div>
+      ${ds.mode === "min" ? `<div class="alert warn" style="margin-top:12px"><strong>Минимальная версия (40 мин)</strong><p>${d.minVersion}</p><p>Полную версию догоните в выходной. Минимум сохраняет серию — это главное.</p></div>` : ""}
+      <ul class="checklist" style="margin-top:12px">${checklist}</ul>
+    </section>
+    <div class="subtabs" role="tablist">${subs.map(([k, l]) => `<button type="button" role="tab" aria-selected="${daySub === k}" data-act="sub" data-sub="${k}">${l}</button>`).join("")}</div>
+    <div>${body}</div>
+    ${navDayHtml(n)}
+  </div>`;
+}
+function navDayHtml(n) {
+  const prev = n > 1 ? `<a class="btn ghost" href="#day-${n - 1}">← День ${n - 1}</a>` : "";
+  const next = DAY(n + 1) ? (isOpen(n + 1) ? `<a class="btn primary" href="#day-${n + 1}">День ${n + 1} →</a>` : `<span class="btn" aria-disabled="true">${lockSvg()} День ${n + 1}</span>`) : "";
+  return `<div class="row" style="justify-content:space-between;margin-top:8px">${prev}${next}</div>`;
+}
+function quizHtml(d, ds) {
+  const q = ds.quiz; const now = Date.now();
+  const cooldownLeft = q.lastFailAt && !q.passedAt ? q.lastFailAt + COOLDOWN_MIN * 60000 - now : 0;
+  if (quizRun && quizRun.day === d.n && quizRun.submitted) return quizResultHtml(d, ds);
+  if (!(quizRun && quizRun.day === d.n)) {
+    let head = `<div class="panel"><h2 style="margin-top:0">Тест дня · 10 вопросов</h2><p class="lede">Порог — ${PASS}/10. Варианты ответов перемешиваются при каждой попытке. После неудачи повтор откроется через ${COOLDOWN_MIN} минут: за это время перечитайте блоки по ошибкам.</p>`;
+    if (q.passedAt) head += `<div class="alert ok"><strong>Тест сдан: лучший результат ${q.best}/10.</strong><p>Можно пройти ещё раз для закрепления — результат не понизится.</p></div>`;
+    if (cooldownLeft > 0) {
+      const mins = Math.ceil(cooldownLeft / 60000);
+      head += `<div class="alert warn"><strong>Повтор через ${mins} мин.</strong><p>Перечитайте разделы по вопросам с ошибками${q.wrong && q.wrong.length ? ": " + q.wrong.map(i => "В" + (i + 1)).join(", ") : ""}. Повтор сразу после ошибки проверяет память на ответы, а не понимание.</p></div><div class="row" style="margin-top:12px"><button class="btn" type="button" data-act="sub" data-sub="content">Открыть материал</button></div></div>`;
+      return head;
+    }
+    head += `<div class="row" style="margin-top:12px"><button class="btn primary" type="button" data-act="quiz-start" data-day="${d.n}">${q.attempts ? "Начать новую попытку" : "Начать тест"}</button>${q.attempts ? `<span class="small muted">Попыток: ${q.attempts}</span>` : ""}</div></div>`;
+    return head;
+  }
+  const items = d.quiz.map((qq, i) => {
+    const order = quizRun.order[i];
+    return `<fieldset class="q" style="margin:0"><legend class="qn">Вопрос ${i + 1} из ${d.quiz.length}</legend><div class="qt">${qq.q}</div>${order.map((oi, k) => `<label><input type="radio" name="q${i}" value="${oi}" data-act="quiz-pick" data-i="${i}" ${quizRun.answers[i] === oi ? "checked" : ""}><span class="lt">${"АБВГ"[k]})</span><span>${qq.options[oi]}</span></label>`).join("")}</fieldset>`;
+  }).join("");
+  const answered = quizRun.answers.filter(a => a != null).length;
+  return `<form class="quiz" data-form="quiz" onsubmit="return false">${items}<div class="row"><button class="btn primary" type="button" data-act="quiz-submit" ${answered < d.quiz.length ? "disabled" : ""}>Сдать тест (${answered}/${d.quiz.length})</button><button class="btn ghost" type="button" data-act="quiz-cancel">Отменить попытку</button></div></form>`;
+}
+function quizResultHtml(d, ds) {
+  const score = quizRun.score; const ok = score >= PASS;
+  const items = d.quiz.map((qq, i) => {
+    const order = quizRun.order[i]; const pick = quizRun.answers[i]; const right = pick === qq.answer;
+    return `<div class="q ${right ? "" : "is-wrong"}"><div class="qn">Вопрос ${i + 1} · ${right ? "верно" : "ошибка"}</div><div class="qt">${qq.q}</div>${order.map((oi, k) => `<label class="${oi === qq.answer ? "right" : oi === pick ? "wrong" : ""}"><span class="lt">${"АБВГ"[k]})</span><span>${qq.options[oi]}</span></label>`).join("")}<div class="ex">${qq.explain}</div></div>`;
+  }).join("");
+  const next = d.n + 1;
+  const cta = ok
+    ? (DAY(next) ? (isOpen(next) ? `<a class="btn primary" href="#day-${next}">Открыт День ${next} →</a>` : `<a class="btn primary" href="#module-${d.module}">Итоговый тест модуля →</a>`) : `<a class="btn primary" href="#module-${d.module}">Итоговый тест модуля →</a>`) + `<button class="btn" type="button" data-act="sub" data-sub="finish">Заполнить итог дня</button>`
+    : `<button class="btn primary" type="button" data-act="sub" data-sub="content">Перечитать материал</button>`;
+  return `<div class="stack"><div class="panel row" style="gap:18px"><span class="stamp ${ok ? "ok" : "bad"}">${ok ? "ЗАЧТЕНО" : "НЕ ЗАЧТЕНО"} · ${score}/10</span><div style="flex:1;min-width:200px"><p style="margin:0;font-weight:600">${ok ? (score === 10 ? "Без единой ошибки. Так и выглядит экспертиза." : "Зачёт. Разберите ошибки ниже — это последние пробелы дня.") : `Нужно ${PASS}/10. Повтор откроется через ${COOLDOWN_MIN} минут.`}</p><div class="row" style="margin-top:10px">${cta}</div></div></div><div class="quiz">${items}</div></div>`;
+}
+function termsHtml(d) {
+  const rows = d.terms.map(t => `<tr><td><strong>${esc(t.ru)}</strong></td><td>${esc(t.en)}</td><td>${esc(t.def)}</td></tr>`).join("");
+  return `<div class="panel"><div class="row" style="justify-content:space-between"><h2 style="margin:0">Термины дня · ${d.terms.length}</h2><a class="btn primary" href="#cards">Учить карточками</a></div><p class="small muted">Все термины открытых дней автоматически попадают в колоду. Новые — до ${NEW_CARDS_PER_DAY} в день.</p><div class="table-wrap"><table><thead><tr><th>Русский</th><th>English</th><th>Что это значит</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+}
+function finishHtml(d, ds) {
+  const j = ds.journal || {};
+  const ok = passed(d.n);
+  return `<div class="panel"><h2 style="margin-top:0">Итог дня</h2><p class="lede">Три минуты письменно. Запись — то, что превращает прочитанное в выученное.</p>
+  <form class="form" data-form="journal" data-day="${d.n}" onsubmit="return false">
+    <div class="field"><label for="j-ins-${d.n}">Три вещи, которые я поняла и могу объяснить без шпаргалки</label><textarea id="j-ins-${d.n}" data-j="insights">${esc(j.insights)}</textarea></div>
+    <div class="field"><label for="j-unc-${d.n}">Что осталось непонятным (вопрос эксперту TMK)</label><textarea id="j-unc-${d.n}" data-j="unclear">${esc(j.unclear)}</textarea></div>
+    <div class="field"><label for="j-app-${d.n}">Где я применю это в работе в ближайшие 48 часов</label><textarea id="j-app-${d.n}" data-j="applied">${esc(j.applied)}</textarea></div>
+    <div class="two"><div class="field"><label for="j-time-${d.n}">Обещание: завтра начинаю в</label><input type="time" id="j-time-${d.n}" data-j="commitTime" value="${esc(j.commitTime)}"></div>
+    <div class="field"><label for="j-place-${d.n}">Место</label><input type="text" id="j-place-${d.n}" data-j="commitPlace" value="${esc(j.commitPlace)}" placeholder="например, кабинет, до начала рабочего дня"></div></div>
+    <div id="finish-err" class="err" hidden></div>
+    <div class="row"><button class="btn primary" type="button" data-act="finish" data-day="${d.n}" ${ok ? "" : "disabled"}>${ds.completedAt ? "Обновить итог" : "Завершить день"}</button>${ok ? "" : `<span class="small muted">Сначала сдайте тест дня.</span>`}</div>
+  </form></div>`;
+}
+
+function viewModule(mn) {
+  const m = MODULE(mn);
+  if (!m || !m.ready) return `<div class="panel lockbox"><h1>Модуль ${mn} в разработке</h1><a class="btn" href="#program">К программе</a></div>`;
+  const allPassed = Array.from({ length: m.to - m.from + 1 }, (_, i) => m.from + i).every(passed);
+  const ms = state.modules[mn] || {};
+  if (!allPassed) return `<div class="panel lockbox"><p class="eyebrow">Модуль ${mn}</p><h1>Итоговый тест закрыт</h1><p class="lede">Сначала сдайте тесты всех дней модуля (Дни ${m.from}–${m.to}).</p><a class="btn primary" href="#day-${currentDay() || m.from}">Продолжить обучение</a></div>`;
+  return `<div class="stack"><div><p class="eyebrow">Модуль ${mn} · рубеж</p><h1>Итоговый тест: ${esc(m.title)}</h1><p class="lede">20 вопросов, 20 минут, без подсказок. Ответьте письменно, затем откройте ключ и честно посчитайте верные ответы. Порог — ${MODULE_PASS}/20.</p></div>
+    ${ms.passedAt ? `<div class="alert ok"><strong>Модуль зачтён: ${ms.score}/20.</strong><p>Следующий модуль открыт.</p></div>` : ""}
+    <section class="panel content">${m.testHtml}</section>
+    <section class="panel"><form class="form" onsubmit="return false"><div class="two"><div class="field"><label for="mscore">Мой результат (верных из 20)</label><input type="number" id="mscore" min="0" max="20" value="${ms.score ?? ""}"></div></div><div id="mod-err" class="err" hidden></div><div class="row"><button class="btn primary" type="button" data-act="module-score" data-m="${mn}">Записать результат</button></div></form></section>
+    <section class="panel content"><h2 style="margin-top:0">Teach-back модуля</h2>${m.teachHtml}<label class="row" style="margin-top:10px"><input type="checkbox" data-act="teach" data-m="${mn}" ${ms.teach ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent)"> Teach-back проведён</label></section>
+  </div>`;
+}
+
+function viewCards() {
+  const cs = cardStats();
+  if (!fcSession) buildSession();
+  const c = fcSession.queue[fcSession.idx];
+  const boxes = `<div class="boxes" aria-label="Коробки Лейтнера">${[1, 2, 3, 4, 5].map(b => `<div><b>${cs.boxes[b]}</b><span>коробка ${b}${b === 5 ? " · выучено" : ""}</span></div>`).join("")}</div>`;
+  const dir = `<div class="seg" role="group" aria-label="Направление"><button type="button" data-act="fc-dir" data-dir="ru" aria-pressed="${fcSession.dir === "ru"}">RU → EN</button><button type="button" data-act="fc-dir" data-dir="en" aria-pressed="${fcSession.dir === "en"}">EN → RU</button></div>`;
+  let card;
+  if (!c) {
+    card = `<div class="fc"><div class="side">Сессия завершена</div><div class="term">${fcSession.done ? `Повторено: ${fcSession.done}` : "Сейчас нечего повторять"}</div><div class="def">${cs.fresh > 0 && cs.newLeft === 0 ? `Лимит новых карточек на сегодня исчерпан (${NEW_CARDS_PER_DAY}). Завтра — следующие.` : "Новые карточки появятся, когда откроются следующие дни."}</div><div class="row" style="justify-content:center"><button class="btn" type="button" data-act="fc-restart">Обновить очередь</button></div></div>`;
+  } else {
+    const front = fcSession.dir === "ru" ? c.ru : c.en;
+    const back = fcSession.dir === "ru" ? c.en : c.ru;
+    card = `<div class="fc"><div class="side">${fcSession.dir === "ru" ? "Русский" : "English"} · карточка ${fcSession.idx + 1} из ${fcSession.queue.length}</div><div class="term">${esc(front)}</div>${fcSession.shown ? `<div class="answer">${esc(back)}</div><div class="def">${esc(c.def)}</div><div class="from">День ${c.day}</div>` : ""}</div>
+      <div class="row" style="justify-content:center">${fcSession.shown ? `<button class="btn danger" type="button" data-act="fc-grade" data-ok="0">Не помню <span class="kbd">1</span></button><button class="btn primary" type="button" data-act="fc-grade" data-ok="1">Помню <span class="kbd">2</span></button>` : `<button class="btn primary" type="button" data-act="fc-show">Показать ответ <span class="kbd">пробел</span></button>`}</div>`;
+  }
+  return `<div class="stack"><div><p class="eyebrow">Интервальное повторение</p><h1>Карточки RU ↔ EN</h1><p class="lede">Термины всех открытых дней. «Помню» переносит карточку в следующую коробку и откладывает повтор (1, 2, 4, 8, 16 дней). «Не помню» возвращает её в первую коробку. Сначала вспомните ответ сами, затем откройте.</p></div>
+    <div class="row" style="justify-content:space-between">${dir}<span class="small muted">К повтору: ${cs.due} · новых сегодня: ${Math.min(cs.fresh, cs.newLeft)}</span></div>
+    <div class="fc-wrap">${card}</div>${boxes}</div>`;
+}
+
+function viewJournal() {
+  const rows = DAYS.map(d => {
+    const ds = state.days[d.n]; if (!ds) return "";
+    const j = ds.journal || {};
+    return `<tr><td class="mono">${d.n}</td><td>${esc(d.title)}</td><td class="mono">${ds.quiz.best != null ? ds.quiz.best + "/10" : "—"}</td><td class="mono">${ds.quiz.attempts || 0}</td><td class="mono">${ds.minutes || 0}</td><td>${fmtDate(ds.completedAt)}</td><td>${esc(j.insights || "")}</td><td>${esc(j.applied || "")}</td></tr>`;
+  }).join("");
+  const mods = DATA.modules.filter(m => m.ready).map(m => { const ms = state.modules[m.n] || {}; return `<li>Модуль ${m.n}: ${ms.score != null ? ms.score + "/20" : "—"}${ms.passedAt ? " · зачтён " + fmtDate(ms.passedAt) : ""}${ms.teach ? " · teach-back ✓" : ""}</li>`; }).join("");
+  const totalMin = DAYS.reduce((a, d) => a + (state.days[d.n]?.minutes || 0), 0);
+  return `<div class="stack"><div><p class="eyebrow">Журнал прогресса</p><h1>Что сделано</h1><p class="lede">В фокусе всего: ${Math.floor(totalMin / 60)} ч ${totalMin % 60} мин. Учитывается время таймеров блоков.</p></div>
+    <div class="table-wrap"><table><thead><tr><th>День</th><th>Тема</th><th>Тест</th><th>Попыток</th><th>Мин</th><th>Завершён</th><th>Выводы</th><th>Применение</th></tr></thead><tbody>${rows || `<tr><td colspan="8" class="muted">Записей пока нет. Начните с Дня 1.</td></tr>`}</tbody></table></div>
+    <section class="panel"><h2 style="margin-top:0">Итоговые тесты</h2><ul>${mods}</ul></section>
+    <section class="panel"><h2 style="margin-top:0">Резервная копия</h2><p class="small muted">${remote.ref ? "Прогресс синхронизируется с вашим аккаунтом. Копия в файле — дополнительная страховка." : "Прогресс хранится только в этом браузере. Делайте копию раз в неделю."}</p>
+      <div class="row"><button class="btn" type="button" data-act="export">Сохранить копию в файл</button><button class="btn" type="button" data-act="copy">Скопировать копию в буфер</button><label class="btn" for="import-file">Восстановить из файла</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
+      <div id="import-confirm" hidden class="alert warn" style="margin-top:12px"><strong>Заменить текущий прогресс данными из файла?</strong><div class="row"><button class="btn danger" type="button" data-act="import-yes">Заменить</button><button class="btn" type="button" data-act="import-no">Отмена</button></div></div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" type="button" data-act="reset">Сбросить весь прогресс</button></div>
+      <div id="reset-confirm" hidden class="alert bad" style="margin-top:12px"><strong>Удалить весь прогресс без возможности восстановления?</strong><div class="row"><button class="btn danger" type="button" data-act="reset-yes">Удалить</button><button class="btn" type="button" data-act="reset-no">Отмена</button></div></div>
+    </section>
+    <label class="row small"><input type="checkbox" data-act="sound" ${state.settings.sound ? "checked" : ""} style="accent-color:var(--accent)"> Звуковой сигнал по окончании таймера</label>
+  </div>`;
+}
+
+function viewContract() {
+  const c = state.contract || {};
+  const signed = !!state.contract;
+  const start = c.start || today(); const end = c.end || addDays(start, 29);
+  return `<div class="stack"><div><p class="eyebrow">Контракт с собой</p><h1>${signed ? "Контракт подписан" : "Подпишите контракт"}</h1><p class="lede">Конкретные время и место заранее повышают шанс, что занятие состоится. Человек, которому вы отчитываетесь, делает пропуск дороже.</p></div>
+    ${signed ? `<section class="panel"><p style="margin:0">Я прохожу программу с <strong>${fmtDate(c.start)}</strong> по <strong>${fmtDate(c.end)}</strong>. Мой ежедневный слот: <strong>${esc(c.from)}–${esc(c.to)}</strong>, место: <strong>${esc(c.place)}</strong>. Раз в неделю отчитываюсь: <strong>${esc(c.partner)}</strong>. Зачем мне это: <strong>${esc(c.why)}</strong>. Если пропущу день: <strong>${esc(c.ifMiss)}</strong>.</p><p class="small muted" style="margin-bottom:0">Подписан ${fmtDate(c.signedAt)}.</p></section>` : ""}
+    <section class="panel"><form class="form" onsubmit="return false">
+      <div class="two"><div class="field"><label for="c-start">Начало</label><input type="date" id="c-start" value="${esc(start)}"></div><div class="field"><label for="c-end">Финиш</label><input type="date" id="c-end" value="${esc(end)}"><span class="hint">По умолчанию — 30 дней от начала</span></div></div>
+      <div class="two"><div class="field"><label for="c-from">Ежедневный слот: с</label><input type="time" id="c-from" value="${esc(c.from || "07:00")}"></div><div class="field"><label for="c-to">до</label><input type="time" id="c-to" value="${esc(c.to || "10:30")}"></div></div>
+      <div class="field"><label for="c-place">Место</label><input type="text" id="c-place" value="${esc(c.place || "")}" placeholder="где вас никто не отвлекает"></div>
+      <div class="field"><label for="c-partner">Кому отчитываюсь раз в неделю</label><input type="text" id="c-partner" value="${esc(c.partner || "")}" placeholder="руководитель, коллега-инженер, наставник"></div>
+      <div class="field"><label for="c-why">Зачем мне это (одной фразой)</label><input type="text" id="c-why" value="${esc(c.why || "")}" placeholder="например, вести поиск технологов для проектов TMK самостоятельно"></div>
+      <div class="field"><label for="c-miss">Если я пропущу день</label><input type="text" id="c-miss" value="${esc(c.ifMiss || "на следующий день делаю минимальную версию, два пропуска подряд не допускаю")}"></div>
+      <div id="c-err" class="err" hidden></div>
+      <div class="row"><button class="btn primary" type="button" data-act="sign">${signed ? "Обновить контракт" : "Подписать"}</button></div>
+    </form></section></div>`;
+}
+
+/* ===================== Events ===================== */
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]"); if (!el) return;
+  const act = el.dataset.act; const n = +el.dataset.day;
+  switch (act) {
+    case "start-warmup": { const d = DAY(n); daySub = "content"; dayState(n); persist(); if (!state.timer) startTimer(n, 0, d.checklist[0].minutes || 10, "Разминка"); if (location.hash === "#day-" + n) renderView(); break; }
+    case "min-mode": { dayState(n).mode = "min"; daySub = "content"; persist(); if (location.hash === "#day-" + n) renderView(); break; }
+    case "mode": { dayState(n).mode = el.dataset.mode; persist(); renderView(); break; }
+    case "sub": { daySub = el.dataset.sub; if (daySub !== "quiz" && quizRun && quizRun.submitted) quizRun = null; renderView(); window.scrollTo({ top: $(".subtabs") ? $(".subtabs").offsetTop - 80 : 0 }); break; }
+    case "timer": { if (state.timer) { toast("Таймер уже идёт. Остановите его, чтобы начать другой блок."); break; } const d = DAY(n); const i = +el.dataset.idx; startTimer(n, i, +el.dataset.min, plainText(d.checklist[i].text)); break; }
+    case "timer-stop": stopTimer(false); break;
+    case "quiz-start": { const d = DAY(n); quizRun = { day: n, order: d.quiz.map(q => shuffle(q.options.map((_, i) => i))), answers: d.quiz.map(() => null), submitted: false }; renderView(); break; }
+    case "quiz-cancel": quizRun = null; renderView(); break;
+    case "quiz-submit": submitQuiz(); break;
+    case "finish": finishDay(n); break;
+    case "module-score": saveModuleScore(+el.dataset.m); break;
+    case "fc-show": fcSession.shown = true; renderView(); break;
+    case "fc-grade": gradeCard(el.dataset.ok === "1"); break;
+    case "fc-dir": fcSession.dir = el.dataset.dir; fcSession.shown = false; renderView(); break;
+    case "fc-restart": fcSession = null; renderView(); break;
+    case "sign": signContract(); break;
+    case "export": exportFile(); break;
+    case "copy": copyBackup(); break;
+    case "import-yes": doImport(); break;
+    case "import-no": pendingImport = null; $("#import-confirm").hidden = true; break;
+    case "reset": $("#reset-confirm").hidden = false; break;
+    case "reset-no": $("#reset-confirm").hidden = true; break;
+    case "reset-yes": { const c = state.contract; state = defaultState(); state.contract = c; quizRun = null; fcSession = null; persist(); render(); toast("Прогресс сброшен. Контракт сохранён."); break; }
+  }
+});
+document.addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.act === "check") {
+    const ds = dayState(+el.dataset.day); const i = +el.dataset.idx;
+    ds.checks[i] = el.checked; if (el.checked) bump("checks");
+    persist(); renderView(); renderStatus();
+  } else if (el.dataset.act === "quiz-pick") {
+    quizRun.answers[+el.dataset.i] = +el.value;
+    const answered = quizRun.answers.filter(a => a != null).length; const btn = $('[data-act="quiz-submit"]');
+    if (btn) { btn.disabled = answered < quizRun.answers.length; btn.textContent = `Сдать тест (${answered}/${quizRun.answers.length})`; }
+  } else if (el.dataset.act === "teach") {
+    const m = +el.dataset.m; state.modules[m] = state.modules[m] || {}; state.modules[m].teach = el.checked; persist(); toast(el.checked ? "Teach-back отмечен. Сильный ход." : "Отметка снята.");
+  } else if (el.dataset.act === "sound") {
+    state.settings.sound = el.checked; persist();
+  } else if (el.id === "import-file" && el.files && el.files[0]) {
+    readImport(el.files[0]);
+  } else if (el.dataset.j) {
+    saveJournalField(el);
+  }
+});
+let journalTimer = null;
+document.addEventListener("input", e => { const el = e.target; if (el.dataset.j) { clearTimeout(journalTimer); journalTimer = setTimeout(() => saveJournalField(el), 700); } });
+function flushJournal() { document.querySelectorAll('[data-form="journal"] [data-j]').forEach(saveJournalField); }
+function saveJournalField(el) {
+  const form = el.closest('[data-form="journal"]'); if (!form) return;
+  const ds = dayState(+form.dataset.day); ds.journal = ds.journal || {};
+  if (ds.journal[el.dataset.j] === el.value) return;
+  ds.journal[el.dataset.j] = el.value; persist();
+}
+document.addEventListener("keydown", e => {
+  if (route() !== "cards" || !fcSession || e.target.closest("input,textarea")) return;
+  if (e.key === " " && !fcSession.shown && fcSession.queue[fcSession.idx]) { e.preventDefault(); fcSession.shown = true; renderView(); }
+  else if (fcSession.shown && (e.key === "1" || e.key === "2")) gradeCard(e.key === "2");
+});
+window.addEventListener("hashchange", () => { daySub = "content"; quizRun = null; renderView(); window.scrollTo(0, 0); $("#main").focus({ preventScroll: true }); });
+
+function plainText(htmlStr) { const t = document.createElement("div"); t.innerHTML = htmlStr; return t.textContent.replace(/\s*\(\d+\s*мин\)\s*$/, "").trim(); }
+function submitQuiz() {
+  const d = DAY(quizRun.day); const ds = dayState(d.n);
+  const wrong = []; let score = 0;
+  d.quiz.forEach((q, i) => { if (quizRun.answers[i] === q.answer) score++; else wrong.push(i); });
+  quizRun.submitted = true; quizRun.score = score;
+  ds.quiz.attempts = (ds.quiz.attempts || 0) + 1;
+  ds.quiz.best = Math.max(ds.quiz.best ?? 0, score);
+  ds.quiz.wrong = wrong;
+  if (score >= PASS) { if (!ds.quiz.passedAt) ds.quiz.passedAt = today(); ds.quiz.lastFailAt = 0; }
+  else if (!ds.quiz.passedAt) ds.quiz.lastFailAt = Date.now();
+  bump("tests"); persist(); renderView(); renderStatus();
+  window.scrollTo({ top: $(".subtabs") ? $(".subtabs").offsetTop - 80 : 0 });
+}
+function finishDay(n) {
+  const ds = dayState(n); const j = ds.journal || {}; const err = $("#finish-err");
+  document.querySelectorAll('[data-form="journal"] [data-j]').forEach(el => { j[el.dataset.j] = el.value; });
+  ds.journal = j;
+  const problems = [];
+  if (!passed(n)) problems.push("сдайте тест дня");
+  if (!j.insights || j.insights.trim().length < 20) problems.push("запишите три вывода (хотя бы пару предложений)");
+  if (!j.commitTime) problems.push("укажите время, когда начнёте завтра");
+  if (problems.length) { err.textContent = "Чтобы завершить день: " + problems.join("; ") + "."; err.hidden = false; persist(); return; }
+  ds.completedAt = ds.completedAt || today(); j.promiseDate = addDays(today(), 1);
+  persist(); renderView(); renderStatus();
+  toast(`День ${n} завершён. Завтра в ${j.commitTime} — День ${n + 1}. Обещание записано.`);
+}
+function saveModuleScore(m) {
+  const v = parseInt($("#mscore").value, 10); const err = $("#mod-err");
+  if (isNaN(v) || v < 0 || v > 20) { err.textContent = "Введите число от 0 до 20."; err.hidden = false; return; }
+  state.modules[m] = state.modules[m] || {};
+  state.modules[m].score = Math.max(state.modules[m].score ?? 0, v);
+  if (v >= MODULE_PASS && !state.modules[m].passedAt) state.modules[m].passedAt = today();
+  bump("tests"); persist(); renderView(); renderStatus();
+  toast(v >= MODULE_PASS ? `Модуль ${m} зачтён: ${v}/20. Следующий модуль открыт.` : `${v}/20 — нужно ${MODULE_PASS}. Повторите дни с ошибками и пройдите тест завтра.`);
+}
+function signContract() {
+  const g = id => $("#" + id).value.trim();
+  const c = { start: g("c-start"), end: g("c-end"), from: g("c-from"), to: g("c-to"), place: g("c-place"), partner: g("c-partner"), why: g("c-why"), ifMiss: g("c-miss") };
+  const missing = [["start", "дату начала"], ["end", "дату финиша"], ["from", "время начала слота"], ["place", "место"], ["partner", "человека, которому отчитываетесь"], ["why", "зачем вам это"]].filter(([k]) => !c[k]).map(([, l]) => l);
+  const err = $("#c-err");
+  if (missing.length) { err.textContent = "Заполните: " + missing.join(", ") + "."; err.hidden = false; return; }
+  if (c.end < c.start) { err.textContent = "Финиш не может быть раньше начала."; err.hidden = false; return; }
+  c.signedAt = (state.contract && state.contract.signedAt) || today();
+  state.contract = c; persist(); renderView(); renderStatus(); toast("Контракт подписан. Теперь — разминка Дня 1.");
+}
+async function exportFile() {
+  const filename = `academy-progress-${today()}.json`; const data = JSON.stringify(state, null, 2);
+  const inViewer = !!(window.claude && window.claude.use);
+  if (inViewer) {
+    let dl = null;
+    try { dl = await window.claude.use("downloads"); } catch (e) { dl = null; }
+    if (!dl) { toast("Сохранение файла здесь недоступно. Используйте «Скопировать копию в буфер»."); return; }
+    try { await dl.save({ filename, data }); toast("Копия сохранена."); } catch (e) { toast("Сохранение отменено или недоступно."); }
+    return;
+  }
+  try { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([data], { type: "application/json" })); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); toast("Копия сохранена в загрузки."); }
+  catch (e) { toast("Не удалось сохранить файл. Используйте «Скопировать копию в буфер»."); }
+}
+async function copyBackup() {
+  const data = JSON.stringify(state);
+  try { await navigator.clipboard.writeText(data); toast("Копия прогресса скопирована в буфер обмена."); }
+  catch (e) { toast("Буфер обмена недоступен. Используйте сохранение в файл."); }
+}
+let pendingImport = null;
+function readImport(file) {
+  const r = new FileReader();
+  r.onload = () => { try { const s = JSON.parse(r.result); if (!s || s.v !== 1 || typeof s.days !== "object") throw 0; pendingImport = s; $("#import-confirm").hidden = false; } catch (e) { toast("Файл не похож на копию прогресса академии."); } };
+  r.readAsText(file);
+}
+function doImport() { if (!pendingImport) return; state = migrate(pendingImport); pendingImport = null; quizRun = null; fcSession = null; persist(); render(); toast("Прогресс восстановлен из файла."); }
+
+/* ===================== Boot ===================== */
+function start() {
+  render();
+  connectRemote();
+  setInterval(() => { renderStatus(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) flushJournal(); else render(); });
+}
+start();
+</script>

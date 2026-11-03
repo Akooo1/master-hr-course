@@ -69,6 +69,9 @@ h3{font-size:17px;margin:22px 0 8px}
 .eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin:0 0 6px}
 .lede{color:var(--ink-2);margin:0 0 14px;max-width:68ch}
 .stack{display:grid;gap:16px}
+/* Grid columns must not grow to the min-content width of wide tables or code blocks */
+.stack,.quiz,.fc-wrap,.form,.today-hero,.day-head,.lockbox{grid-template-columns:minmax(0,1fr)}
+.stack>*,.quiz>*,.day-head>*{min-width:0}
 .panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px}
 .panel.flat{border:none;background:transparent;padding:0}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
@@ -539,6 +542,7 @@ function renderView() {
   else if (r === "journal") main.innerHTML = viewJournal();
   else if (r === "tmk") main.innerHTML = `<p class="eyebrow">Справочник</p>${DATA.profileHtml.replace("<h1>", "<h1 style='margin-top:0'>")}`.replace(/^/, "<div class='content'>") + "</div>";
   else if (r === "contract") main.innerHTML = viewContract();
+  else if (r === "certificate") main.innerHTML = viewCertificate();
   else main.innerHTML = viewToday();
 }
 
@@ -578,7 +582,10 @@ function viewToday() {
     const m = MODULE(na.n);
     hero = `<section class="panel today-hero"><p class="eyebrow">Рубеж модуля</p><h1>Итоговый тест Модуля ${m.n}</h1><p class="lede">${esc(m.title)}. Порог — ${MODULE_PASS}/20. Следующий модуль откроется после зачёта.</p><div class="row"><a class="btn primary" href="#module-${m.n}">Пройти итоговый тест</a></div></section>`;
   } else {
-    hero = `<section class="panel today-hero"><p class="eyebrow">Модули 1–2 пройдены</p><h1>Треть программы позади</h1><p class="lede">Модули 3–6 ещё в разработке. Пока держите серию: карточки каждый день, teach-back с технологом, применение знаний на реальных вакансиях TMK.</p><div class="row"><a class="btn primary" href="#cards">Повторить карточки</a><a class="btn" href="#journal">Открыть журнал</a></div></section>`;
+    const grad = graduation();
+    hero = grad.done
+      ? `<section class="panel today-hero"><p class="eyebrow">Выпуск</p><h1>Программа пройдена</h1><p class="lede">Все 30 дней и шесть модулей сданы. Теперь каждая вакансия TMK — ваш следующий модуль: держите карты талантов живыми, повторяйте карточки, учитесь у экспертов.</p><div class="row"><a class="btn primary" href="#certificate">Открыть свидетельство</a><a class="btn" href="#cards">Повторить карточки</a></div></section>`
+      : `<section class="panel today-hero"><p class="eyebrow">Почти выпуск</p><h1>Осталось закрыть требования выпуска</h1><p class="lede">Тесты дней и модулей сданы. Для свидетельства проверьте teach-back по модулям и итог Дня 30.</p><div class="row"><a class="btn primary" href="#certificate">Требования выпуска</a><a class="btn" href="#journal">Открыть журнал</a></div></section>`;
   }
   const endDate = state.contract && state.contract.end;
   const left = endDate ? diffDays(t, endDate) : null;
@@ -619,7 +626,7 @@ function chainHtml() {
   }
   return `<div class="chain" role="img" aria-label="Активность за 28 дней">${cells}</div><div class="chain-legend"><span class="l-on">занятие</span><span class="l-gap">один пропуск</span><span class="l-broken">два пропуска подряд</span></div>`;
 }
-const SYMBOLS = {1:"Ин",2:"Гл",3:"Рз",4:"Гр",5:"Пр",6:"Об",7:"Фл",8:"Гм",9:"Эк",10:"Пм"};
+const SYMBOLS = {1:"Ин",2:"Гл",3:"Рз",4:"Гр",5:"Пр",6:"Об",7:"Фл",8:"Гм",9:"Эк",10:"Пм",11:"Ln",12:"Вс",13:"Рд",14:"Nd",15:"Li",16:"Ап",17:"Ан",18:"Кч",19:"Ас",20:"Бз",21:"Пф",22:"Кт",23:"Пс",24:"Кд",25:"Уп",26:"Сб",27:"Вр",28:"Мж",29:"Зк",30:"Фн"};
 function gridHtml() {
   const cd = currentDay();
   let out = "";
@@ -650,17 +657,51 @@ function badgesHtml() {
   const list = [
     ["Первый зачёт", DAYS.some(d => passed(d.n)), "сдан первый тест дня"],
     ["Неделя в строю", st.best >= 7, "серия 7 дней"],
-    ["Модуль 1", modulePassed(1), "итоговый тест ≥ 16/20"],
-    ["Модуль 2", modulePassed(2), "итоговый тест ≥ 16/20"],
+    ...DATA.modules.filter(m => m.ready).map(m => [`Модуль ${m.n}`, modulePassed(m.n), "итоговый тест ≥ 16/20"]),
+    ["Три недели в строю", st.best >= 21, "серия 21 день"],
+    ["300 терминов", learned >= 300, `карточек в коробках 3–5: ${learned}`],
     ["Без единой ошибки", perfect, "тест дня 10/10"],
     ["100 терминов", learned >= 100, `карточек в коробках 3–5: ${learned}`],
-    ["Teach-back ×2", !!(state.modules[1]?.teach && state.modules[2]?.teach), "объяснили модули эксперту"]
+    ["Teach-back по всем модулям", DATA.modules.filter(m => m.ready).every(m => state.modules[m.n]?.teach), "объяснили каждый модуль эксперту"],
+    ["Выпускник", graduation().done, "все требования выпуска выполнены"]
   ];
   return `<div class="badges">${list.map(([n, got, s]) => `<span class="badge ${got ? "got" : ""}" title="${esc(s)}"><b>${got ? "✓" : "○"}</b>${esc(n)}</span>`).join("")}</div>`;
 }
 
+function graduation() {
+  const readyMods = DATA.modules.filter(m => m.ready);
+  const items = [
+    ["Тесты всех дней сданы (≥ 8/10)", DAYS.every(d => passed(d.n)), `${DAYS.filter(d => passed(d.n)).length} из ${DAYS.length}`],
+    ["Итоговые тесты всех модулей сданы (≥ 16/20)", readyMods.every(m => modulePassed(m.n)), `${readyMods.filter(m => modulePassed(m.n)).length} из ${readyMods.length}`],
+    ["Teach-back по каждому модулю", readyMods.every(m => state.modules[m.n]?.teach), `${readyMods.filter(m => state.modules[m.n]?.teach).length} из ${readyMods.length}`],
+    ["День 30 завершён: финальный проект и итог дня", !!state.days[DATA.totalDays]?.completedAt, state.days[DATA.totalDays]?.completedAt ? fmtDate(state.days[DATA.totalDays].completedAt) : "ещё нет"]
+  ];
+  return { items, done: DAYS.length === DATA.totalDays && items.every(i => i[1]) };
+}
+function viewCertificate() {
+  const g = graduation(); const st = streakInfo();
+  const totalMin = DAYS.reduce((a, d) => a + (state.days[d.n]?.minutes || 0), 0);
+  const avg = avgScore();
+  const list = `<ul class="checklist">${g.items.map(([t, ok, v]) => `<li class="${ok ? "done" : ""}"><input type="checkbox" disabled ${ok ? "checked" : ""}><span class="ct">${esc(t)}</span><span class="mono small muted">${esc(v)}</span></li>`).join("")}</ul>`;
+  if (!g.done) return `<div class="stack"><div><p class="eyebrow">Выпуск</p><h1>Требования выпуска</h1><p class="lede">Свидетельство откроется, когда выполнены все четыре требования. Каждое — то, что отличает выпускника от «прочитавшего курс».</p></div><section class="panel">${list}</section><div class="row"><a class="btn primary" href="#today">Продолжить обучение</a></div></div>`;
+  const name = (state.contract && state.contract.name) || "Выпускник программы";
+  const started = state.contract?.start || firstActivity() || state.createdAt;
+  const finished = state.days[DATA.totalDays]?.completedAt;
+  return `<div class="stack"><section class="panel" style="text-align:center;padding:32px 20px;border-width:2px;border-color:var(--accent);box-shadow:var(--glow)">
+    <p class="eyebrow">Свидетельство о прохождении</p>
+    <h1 style="font-size:clamp(22px,4vw,30px)">${esc(name)}</h1>
+    <p class="lede" style="margin:8px auto 16px">Пройдена 30-дневная программа <strong>Mining &amp; Metallurgy Executive Search Academy</strong>: горное дело, переработка и металлургия, РЗЭ и критические минералы, оборудование, лаборатории и производственные системы, технический подбор и оценка кандидатов.</p>
+    <div class="kpis" style="max-width:640px;margin:0 auto">
+      <div class="kpi"><div class="k">Период</div><div class="v" style="font-size:16px">${fmtDate(started)} — ${fmtDate(finished)}</div></div>
+      <div class="kpi"><div class="k">Средний балл</div><div class="v">${avg == null ? "—" : avg + "%"}</div></div>
+      <div class="kpi"><div class="k">В фокусе</div><div class="v">${Math.floor(totalMin / 60)} ч</div></div>
+      <div class="kpi"><div class="k">Лучшая серия</div><div class="v">${st.best}</div></div>
+    </div>
+    <p class="small muted" style="margin-top:16px">Свидетельство формирует приложение по выполненным требованиям: тесты 30 дней, итоговые тесты 6 модулей, teach-back и финальный проект.</p>
+  </section><section class="panel">${list}</section></div>`;
+}
 function viewProgram() {
-  let out = `<p class="eyebrow">Программа</p><h1>30 дней · 6 модулей</h1><p class="lede">Каждый следующий день открывается после теста ≥ ${PASS}/10, каждый следующий модуль — после итогового теста ≥ ${MODULE_PASS}/20. Модули 3–6 появятся после уточнения программы.</p>`;
+  let out = `<p class="eyebrow">Программа</p><h1>30 дней · 6 модулей</h1><p class="lede">Каждый следующий день открывается после теста ≥ ${PASS}/10, каждый следующий модуль — после итогового теста ≥ ${MODULE_PASS}/20. Выпуск — после всех тестов, teach-back по модулям и финального проекта (<a href="#certificate">требования</a>).</p>`;
   for (const m of DATA.modules) {
     out += `<section class="panel" style="margin-top:14px"><p class="eyebrow">Дни ${m.from}–${m.to}${m.ready ? "" : " · в разработке"}</p><h2 style="margin-top:0">Модуль ${m.n}. ${esc(m.title)}</h2>`;
     if (m.goal) out += `<p class="lede">${m.goal}</p>`;
@@ -812,7 +853,7 @@ function viewJournal() {
   const totalMin = DAYS.reduce((a, d) => a + (state.days[d.n]?.minutes || 0), 0);
   return `<div class="stack"><div><p class="eyebrow">Журнал прогресса</p><h1>Что сделано</h1><p class="lede">В фокусе всего: ${Math.floor(totalMin / 60)} ч ${totalMin % 60} мин. Учитывается время таймеров блоков.</p></div>
     <div class="table-wrap"><table><thead><tr><th>День</th><th>Тема</th><th>Тест</th><th>Попыток</th><th>Мин</th><th>Завершён</th><th>Выводы</th><th>Применение</th></tr></thead><tbody>${rows || `<tr><td colspan="8" class="muted">Записей пока нет. Начните с Дня 1.</td></tr>`}</tbody></table></div>
-    <section class="panel"><h2 style="margin-top:0">Итоговые тесты</h2><ul>${mods}</ul></section>
+    <section class="panel"><h2 style="margin-top:0">Итоговые тесты</h2><ul>${mods}</ul><a class="btn small" href="#certificate">Требования выпуска и свидетельство</a></section>
     <section class="panel"><h2 style="margin-top:0">Резервная копия</h2><p class="small muted">${remote.ref ? "Прогресс синхронизируется с вашим аккаунтом. Копия в файле — дополнительная страховка." : "Прогресс хранится только в этом браузере. Делайте копию раз в неделю."}</p>
       <div class="row"><button class="btn" type="button" data-act="export">Сохранить копию в файл</button><button class="btn" type="button" data-act="copy">Скопировать копию в буфер</button><label class="btn" for="import-file">Восстановить из файла</label><input type="file" id="import-file" accept="application/json,.json" hidden></div>
       <div id="import-confirm" hidden class="alert warn" style="margin-top:12px"><strong>Заменить текущий прогресс данными из файла?</strong><div class="row"><button class="btn danger" type="button" data-act="import-yes">Заменить</button><button class="btn" type="button" data-act="import-no">Отмена</button></div></div>
@@ -832,6 +873,7 @@ function viewContract() {
     <section class="panel"><form class="form" onsubmit="return false">
       <div class="two"><div class="field"><label for="c-start">Начало</label><input type="date" id="c-start" value="${esc(start)}"></div><div class="field"><label for="c-end">Финиш</label><input type="date" id="c-end" value="${esc(end)}"><span class="hint">По умолчанию — 30 дней от начала</span></div></div>
       <div class="two"><div class="field"><label for="c-from">Ежедневный слот: с</label><input type="time" id="c-from" value="${esc(c.from || "07:00")}"></div><div class="field"><label for="c-to">до</label><input type="time" id="c-to" value="${esc(c.to || "10:30")}"></div></div>
+      <div class="field"><label for="c-name">Имя (для свидетельства о выпуске)</label><input type="text" id="c-name" value="${esc(c.name || "")}" placeholder="как написать в свидетельстве"></div>
       <div class="field"><label for="c-place">Место</label><input type="text" id="c-place" value="${esc(c.place || "")}" placeholder="где вас никто не отвлекает"></div>
       <div class="field"><label for="c-partner">Кому отчитываюсь раз в неделю</label><input type="text" id="c-partner" value="${esc(c.partner || "")}" placeholder="руководитель, коллега-инженер, наставник"></div>
       <div class="field"><label for="c-why">Зачем мне это (одной фразой)</label><input type="text" id="c-why" value="${esc(c.why || "")}" placeholder="например, вести поиск технологов для проектов TMK самостоятельно"></div>
@@ -945,7 +987,7 @@ function saveModuleScore(m) {
 }
 function signContract() {
   const g = id => $("#" + id).value.trim();
-  const c = { start: g("c-start"), end: g("c-end"), from: g("c-from"), to: g("c-to"), place: g("c-place"), partner: g("c-partner"), why: g("c-why"), ifMiss: g("c-miss") };
+  const c = { name: g("c-name"), start: g("c-start"), end: g("c-end"), from: g("c-from"), to: g("c-to"), place: g("c-place"), partner: g("c-partner"), why: g("c-why"), ifMiss: g("c-miss") };
   const missing = [["start", "дату начала"], ["end", "дату финиша"], ["from", "время начала слота"], ["place", "место"], ["partner", "человека, которому отчитываетесь"], ["why", "зачем вам это"]].filter(([k]) => !c[k]).map(([, l]) => l);
   const err = $("#c-err");
   if (missing.length) { err.textContent = "Заполните: " + missing.join(", ") + "."; err.hidden = false; return; }

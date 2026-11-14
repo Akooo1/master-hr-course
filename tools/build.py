@@ -3,10 +3,15 @@
 
 Usage:  python3 tools/build.py
 
-Reads:   README.md, 00-start/tmk-profile.md, module-*/README.md, module-*/day-*.md, tools/app_template.html
-Writes:  app/index.html      — standalone page (open in a browser, works offline)
-         app/artifact.html   — same page without the document skeleton (for publishing as a hosted page)
-         glossary.md         — RU–EN glossary merged from the terminology tables of all days
+Two programmes ("tracks") share one app:
+  academy — 00-start/tmk-profile.md, module-*/README.md, module-*/day-*.md
+  english — english/README.md, english/module-*/README.md, english/module-*/lesson-*.md
+
+Writes:  app/index.html          — standalone page (open in a browser, works offline)
+         app/artifact.html       — same page without the document skeleton (for publishing as a hosted page)
+         glossary.md             — RU–EN glossary merged from the terminology tables of all Academy days
+         english/glossary.md     — EN–RU vocabulary of all English lessons
+         english/phrasebook.md   — key phrases of all English lessons, by block
 
 No third-party dependencies: the Markdown subset used in the course is rendered by the small converter below.
 """
@@ -39,16 +44,26 @@ def map_link(url: str, ctx: dict | None) -> tuple[str, bool]:
         return url, True
     if url.startswith("#"):
         return url, False
+    track = (ctx or {}).get("track", "academy")
     if "tmk-profile.md" in url:
-        return "#tmk", False
+        return "#academy-ref", False
     day = re.search(r"day-(\d+)-", url)
     if day:
-        return f"#day-{int(day.group(1))}", False
+        return f"#academy-day-{int(day.group(1))}", False
+    lesson = re.search(r"lesson-(\d+)-", url)
+    if lesson:
+        return f"#english-day-{int(lesson.group(1))}", False
+    mod = re.search(r"(english/)?module-(\d+)-[^/]*/README\.md$", url)
+    if mod:
+        t = "english" if (mod.group(1) or (track == "english" and not url.startswith("../../module"))) else "academy"
+        return f"#{t}-module-{int(mod.group(2))}", False
     if url.endswith("README.md") and ctx and ctx.get("module"):
-        return f"#module-{ctx['module']}", False
+        return f"#{track}-module-{ctx['module']}", False
     if "PROGRESS.md" in url:
-        return "#journal", False
-    return "#today", False
+        return f"#{track}-journal", False
+    if "phrasebook.md" in url or "glossary.md" in url:
+        return f"#{track}-cards", False
+    return f"#{track}-today", False
 
 
 def inline(text: str, ctx: dict | None = None) -> str:
@@ -326,18 +341,54 @@ def minutes_of(text: str) -> int:
     return int(m.group(1)) if m else 0
 
 
-def parse_day(path: Path, module: dict) -> dict:
+TRACKS = [
+    {
+        "id": "academy",
+        "title": "Mining & Metallurgy Executive Search Academy",
+        "short": "Академия Executive Search",
+        "subtitle": "30 дней · 6 модулей · отрасль, технологии, поиск и оценка кандидатов",
+        "kind": "academy",
+        "root": "",
+        "unit_glob": "day-*.md",
+        "labels": {"day": "День", "dayGen": "дня", "days": "дни", "unit": "Модуль", "unitGen": "модуля",
+                   "test": "Тест дня", "check": "Teach-back", "ref": "TMK", "mark": "74 W"},
+        "refTitle": "Профиль TMK",
+        "ref": "00-start/tmk-profile.md",
+    },
+    {
+        "id": "english",
+        "title": "English for Critical Metals HR",
+        "short": "Английский для HR",
+        "subtitle": "20 уроков · 4 блока · русско-английский курс для рекрутера в металлургии",
+        "kind": "english",
+        "root": "english",
+        "unit_glob": "lesson-*.md",
+        "labels": {"day": "Урок", "dayGen": "урока", "days": "уроки", "unit": "Блок", "unitGen": "блока",
+                   "test": "Тест урока", "check": "Speaking check", "ref": "Курс", "mark": "En"},
+        "refTitle": "О курсе",
+        "ref": "english/README.md",
+    },
+]
+
+
+def _cap(s: str) -> str:
+    m = re.search(r"[A-Za-zА-Яа-яЁё]", s)
+    return s[:m.start()] + s[m.start()].upper() + s[m.start() + 1:] if m else s
+
+
+def parse_day(path: Path, module: dict, track: dict) -> dict:
+    """Parse one Academy day or one English lesson."""
     md = path.read_text(encoding="utf-8")
-    ctx = {"module": module["n"]}
+    ctx = {"module": module["n"], "track": track["id"]}
+    english = track["kind"] == "english"
     first = md.split("\n", 1)[0]
-    m = re.match(r"^# День (\d+)\.\s*(.*)$", first)
+    m = re.match(r"^# (?:День|Урок) (\d+)\.\s*(.*)$", first)
     if not m:
-        raise ValueError(f"{path}: first line must be '# День N. Title'")
+        raise ValueError(f"{path}: first line must be '# День N. Title' or '# Урок N. Title'")
     n, title = int(m.group(1)), m.group(2).strip()
 
     sections = split_sections(md)
     intro = sections[0][1]
-    # Header blockquote: lines starting with '>' before the first '---'
     header_lines = []
     for line in intro.split("\n")[1:]:
         if line.startswith(">"):
@@ -345,20 +396,16 @@ def parse_day(path: Path, module: dict) -> dict:
         elif line.strip() == "---":
             break
     header = "\n".join(header_lines)
-    challenge = re.search(r"\*\*Вызов дня[^*]*:\*\*\s*(.+?)(?:\n\s*\n|$)", header, re.S)
-    why = re.search(r"\*\*Зачем это вам:\*\*\s*(.+?)(?:\n\s*\n|$)", header, re.S)
+    challenge = re.search(r"\*\*(?:Вызов дня|Задача урока)[^*]*:\*\*\s*(.+?)(?:\n|$)", header)
+    why = re.search(r"\*\*Зачем это вам:\*\*\s*(.+?)(?:\n|$)", header)
     meta_line = header.split("\n")[0] if header else ""
+    duration = re.search(r"≈\s*([\d,–\-]+\s*(?:час|мин)\w*)", meta_line)
+    level = re.search(r"Уровень:\s*(.+)$", meta_line)
 
-    def cap(s: str) -> str:
-        m = re.search(r"[A-Za-zА-Яа-яЁё]", s)
-        return s[:m.start()] + s[m.start()].upper() + s[m.start() + 1:] if m else s
-
-    duration = re.search(r"≈\s*([\d,–\-]+\s*час\w*)", meta_line)
-
-    checklist, min_version, terms, quiz = [], "", [], []
+    checklist, min_version, terms, phrases, quiz = [], "", [], [], []
     content_parts = []
     for head, body in sections[1:]:
-        if head.startswith("Чек-лист дня"):
+        if head.startswith("Чек-лист"):
             for line in body.split("\n"):
                 t = re.match(r"^- \[ \]\s+(.*)$", line.strip())
                 if t:
@@ -367,20 +414,33 @@ def parse_day(path: Path, module: dict) -> dict:
                 if mv:
                     min_version = inline(mv.group(1), ctx)
             continue
-        if head.startswith("5. Тест дня"):
+        if re.match(r"^\d+\. Тест (дня|урока)", head):
             quiz = parse_quiz(body, ctx)
             continue
-        if head.startswith("2. Терминология"):
+        if not english and head.startswith("2. Терминология"):
             for row in parse_table(body):
                 if len(row) >= 3:
                     terms.append({"ru": row[0], "en": row[1], "def": row[2]})
+        if english and head.startswith("1. Словарь"):
+            for row in parse_table(body):
+                if len(row) >= 4:
+                    terms.append({"en": row[0], "pron": row[1], "ru": row[2], "ex": row[3]})
+        if english and head.startswith("2. Ключевые фразы"):
+            for row in parse_table(body):
+                if len(row) >= 3:
+                    phrases.append({"en": row[0], "ru": row[1], "note": row[2]})
         content_parts.append(f"## {head}\n{body}")
 
     if len(quiz) != 10:
         raise ValueError(f"{path}: expected 10 quiz questions, found {len(quiz)}")
     if not checklist:
         raise ValueError(f"{path}: checklist not found")
-    if len(terms) < 20:
+    if english:
+        if len(terms) < 15:
+            raise ValueError(f"{path}: expected at least 15 vocabulary rows, found {len(terms)}")
+        if len(phrases) < 8:
+            raise ValueError(f"{path}: expected at least 8 key phrases, found {len(phrases)}")
+    elif len(terms) < 20:
         raise ValueError(f"{path}: expected at least 20 terms, found {len(terms)}")
 
     return {
@@ -389,20 +449,22 @@ def parse_day(path: Path, module: dict) -> dict:
         "title": title,
         "file": f"{module['dir']}/{path.name}",
         "duration": duration.group(1) if duration else "",
-        "challenge": inline(cap(" ".join(challenge.group(1).split())), ctx) if challenge else "",
-        "why": inline(cap(" ".join(why.group(1).split())), ctx) if why else "",
+        "level": level.group(1).strip() if level else "",
+        "challenge": inline(_cap(" ".join(challenge.group(1).split())), ctx) if challenge else "",
+        "why": inline(_cap(" ".join(why.group(1).split())), ctx) if why else "",
         "checklist": checklist,
         "minVersion": min_version,
         "terms": terms,
+        "phrases": phrases,
         "quiz": quiz,
         "html": render_md("\n".join(content_parts), ctx),
     }
 
 
-def parse_module(dir_path: Path) -> dict:
+def parse_module(dir_path: Path, track: dict) -> dict:
     readme = (dir_path / "README.md").read_text(encoding="utf-8")
     first = readme.split("\n", 1)[0]
-    m = re.match(r"^# Модуль (\d+)\.\s*(.*?)\s*\(Дни (\d+)[–-](\d+)\)", first)
+    m = re.match(r"^# (?:Модуль|Блок) (\d+)\.\s*(.*?)\s*\((?:Дни|Уроки) (\d+)[–-](\d+)\)", first)
     if not m:
         raise ValueError(f"{dir_path}/README.md: unexpected title line")
     module = {
@@ -410,40 +472,23 @@ def parse_module(dir_path: Path) -> dict:
         "title": m.group(2),
         "from": int(m.group(3)),
         "to": int(m.group(4)),
-        "dir": dir_path.name,
+        "dir": (f"{track['root']}/" if track["root"] else "") + dir_path.name,
         "ready": True,
     }
-    goal = re.search(r"^>\s*\*\*Практический результат модуля:\*\*\s*(.+)$", readme, re.M)
-    module["goal"] = inline(goal.group(1), {"module": module["n"]}) if goal else ""
+    ctx = {"module": module["n"], "track": track["id"]}
+    goal = re.search(r"^>\s*\*\*Практический результат (?:модуля|блока):\*\*\s*(.+)$", readme, re.M)
+    module["goal"] = inline(goal.group(1), ctx) if goal else ""
     test_html, teach_html = "", ""
     for head, body in split_sections(readme):
-        if head.startswith("Итоговый тест модуля"):
-            test_html = render_md(body, {"module": module["n"]})
-        if head.startswith("Teach-back"):
-            teach_html = render_md(body, {"module": module["n"]})
+        if head.startswith("Итоговый тест"):
+            test_html = render_md(body, ctx)
+        if head.startswith("Teach-back") or head.startswith("Speaking check"):
+            teach_html = render_md(body, ctx)
+    if not test_html or not teach_html:
+        raise ValueError(f"{dir_path}/README.md: final test or teach-back / speaking check section missing")
     module["testHtml"] = test_html
     module["teachHtml"] = teach_html
     return module
-
-
-def parse_planned_modules(readme: str) -> list[dict]:
-    planned = []
-    for head, body in split_sections(readme):
-        if not head.startswith("Карта программы"):
-            continue
-        for row in parse_table(body.split("### Модули 3–6")[-1]):
-            mm = re.match(r"^\*\*(\d+)\.\s*(.+?)\*\*$", row[0])
-            days = re.match(r"^(\d+)[–-](\d+)$", row[1]) if len(row) > 1 else None
-            if mm and days:
-                planned.append({
-                    "n": int(mm.group(1)),
-                    "title": mm.group(2),
-                    "from": int(days.group(1)),
-                    "to": int(days.group(2)),
-                    "topics": inline(row[2]),
-                    "ready": False,
-                })
-    return planned
 
 
 def build_glossary(days: list[dict]) -> str:
@@ -473,34 +518,100 @@ def build_glossary(days: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main() -> int:
-    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+def build_english_glossary(days: list[dict]) -> str:
+    merged: dict[str, dict] = {}
+    for d in days:
+        for t in d["terms"]:
+            key = t["en"].lower()
+            if key not in merged:
+                merged[key] = {**t, "days": [d["n"]]}
+            elif d["n"] not in merged[key]["days"]:
+                merged[key]["days"].append(d["n"])
+    entries = sorted(merged.values(), key=lambda e: e["en"].lower())
+    lines = [
+        "# Glossary EN — RU",
+        "",
+        "> Словарь курса English for Critical Metals HR, собранный из разделов «Словарь» всех уроков.",
+        "> Файл генерируется командой `python3 tools/build.py` — правьте слова в файлах уроков, а не здесь.",
+        "",
+        f"Слов и выражений: **{len(entries)}**.",
+        "",
+        "| English | Произношение | Русский | Урок |",
+        "|---|---|---|---|",
+    ]
+    for e in entries:
+        refs = ", ".join(str(n) for n in sorted(e["days"]))
+        lines.append(f"| {e['en']} | {e['pron']} | {e['ru']} | {refs} |")
+    return "\n".join(lines) + "\n"
+
+
+def build_phrasebook(days: list[dict], modules: list[dict]) -> str:
+    lines = [
+        "# Phrasebook: фразы рекрутера",
+        "",
+        "> Все ключевые фразы курса English for Critical Metals HR по урокам. Держите файл открытым во время звонков и переписки.",
+        "> Файл генерируется командой `python3 tools/build.py` — правьте фразы в файлах уроков, а не здесь.",
+        "",
+    ]
+    for m in modules:
+        lines += [f"## Блок {m['n']}. {m['title']}", ""]
+        for d in days:
+            if d["module"] != m["n"]:
+                continue
+            lines += [f"### Урок {d['n']}. {d['title']}", "", "| English | Русский | Когда использовать |", "|---|---|---|"]
+            lines += [f"| {p['en']} | {p['ru']} | {p['note']} |" for p in d["phrases"]]
+            lines.append("")
+    return "\n".join(lines)
+
+
+def build_track(track: dict) -> dict:
+    base = ROOT / track["root"] if track["root"] else ROOT
     modules, days = [], []
-    for mdir in sorted(ROOT.glob("module-*")):
+    for mdir in sorted(base.glob("module-*")):
         if not (mdir / "README.md").exists():
             continue
-        module = parse_module(mdir)
+        module = parse_module(mdir, track)
         modules.append(module)
-        for dpath in sorted(mdir.glob("day-*.md")):
-            days.append(parse_day(dpath, module))
+        for dpath in sorted(mdir.glob(track["unit_glob"])):
+            days.append(parse_day(dpath, module, track))
     days.sort(key=lambda d: d["n"])
-    expected = list(range(1, len(days) + 1))
-    if [d["n"] for d in days] != expected:
-        raise ValueError(f"Day numbers are not contiguous: {[d['n'] for d in days]}")
-    modules += [p for p in parse_planned_modules(readme) if p["n"] not in {m["n"] for m in modules}]
     modules.sort(key=lambda m: m["n"])
-
-    profile = (ROOT / "00-start" / "tmk-profile.md").read_text(encoding="utf-8")
-    data = {
-        "version": 1,
-        "totalDays": 30,
+    if [d["n"] for d in days] != list(range(1, len(days) + 1)):
+        raise ValueError(f"{track['id']}: unit numbers are not contiguous: {[d['n'] for d in days]}")
+    for m in modules:
+        inside = [d["n"] for d in days if d["module"] == m["n"]]
+        if inside != list(range(m["from"], m["to"] + 1)):
+            raise ValueError(f"{track['id']} module {m['n']}: expected units {m['from']}–{m['to']}, found {inside}")
+    ref = (ROOT / track["ref"]).read_text(encoding="utf-8")
+    if track["kind"] == "english":
+        # The course README starts with its own title; the app shows it under the "О курсе" tab.
+        ref = ref.split("\n", 1)[1]
+    return {
+        "id": track["id"],
+        "title": track["title"],
+        "short": track["short"],
+        "subtitle": track["subtitle"],
+        "kind": track["kind"],
+        "totalDays": len(days),
+        "labels": track["labels"],
         "modules": modules,
         "days": days,
-        "profileHtml": render_md(profile, None),
+        "refTitle": track["refTitle"],
+        "refHtml": render_md(ref, {"track": track["id"]}),
     }
 
-    (ROOT / "glossary.md").write_text(build_glossary(days), encoding="utf-8")
 
+def main() -> int:
+    tracks = [build_track(t) for t in TRACKS]
+    academy = next(t for t in tracks if t["id"] == "academy")
+    english = next(t for t in tracks if t["id"] == "english")
+
+    (ROOT / "glossary.md").write_text(build_glossary(academy["days"]), encoding="utf-8")
+    (ROOT / "english" / "glossary.md").write_text(build_english_glossary(english["days"]), encoding="utf-8")
+    (ROOT / "english" / "phrasebook.md").write_text(build_phrasebook(english["days"], english["modules"]),
+                                                    encoding="utf-8")
+
+    data = {"version": 2, "tracks": tracks}
     template = TEMPLATE.read_text(encoding="utf-8")
     payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")
     if "/*__COURSE_DATA__*/null" not in template:
@@ -517,9 +628,13 @@ def main() -> int:
     )
     (app_dir / "index.html").write_text(standalone, encoding="utf-8")
 
-    n_terms = sum(len(d["terms"]) for d in days)
-    print(f"Built {len(days)} days, {sum(len(d['quiz']) for d in days)} quiz questions, {n_terms} terms "
-          f"-> app/index.html ({len(standalone.encode('utf-8')) // 1024} KB), app/artifact.html, glossary.md")
+    for t in tracks:
+        n_terms = sum(len(d["terms"]) for d in t["days"])
+        n_phr = sum(len(d.get("phrases", [])) for d in t["days"])
+        print(f"{t['id']}: {len(t['modules'])} modules, {len(t['days'])} units, "
+              f"{sum(len(d['quiz']) for d in t['days'])} quiz questions, {n_terms} terms, {n_phr} phrases")
+    print(f"-> app/index.html ({len(standalone.encode('utf-8')) // 1024} KB), app/artifact.html, glossary.md, "
+          f"english/glossary.md, english/phrasebook.md")
     return 0
 
 
